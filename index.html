@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' ws:; worker-src 'self' blob:; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="description" content="SoundWeave 声织 —— 轻量音色编曲工作站：真实合成音源、时间轴、钢琴卷帘、鼓步进与 WAV 导出。" />
+    <title>SoundWeave 声织 · 音色编曲工作站</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo">◈</span>
+          <div>
+            <div class="brand-name">SoundWeave</div>
+            <div class="brand-sub">声织 · 音色编曲工作站</div>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button id="btn-play" class="tbtn primary" title="播放 / 暂停（空格）" aria-label="播放 / 暂停" aria-keyshortcuts="Space">▶</button>
+          <button id="btn-stop" class="tbtn" title="停止（Esc）" aria-label="停止" aria-keyshortcuts="Escape">■</button>
+          <button id="btn-record" class="tbtn rec" title="录制" aria-label="录制">●</button>
+          <span class="sep"></span>
+          <label class="field">BPM
+            <input id="bpm" type="number" min="30" max="240" step="1" value="100" />
+          </label>
+          <label class="field check"><input id="loop-enabled" type="checkbox" checked /> 循环</label>
+          <label class="field loop">
+            <input id="loop-start" type="number" min="0" step="1" value="0" />
+            <span>–</span>
+            <input id="loop-end" type="number" min="1" step="1" value="16" />
+          </label>
+          <button id="btn-metro" class="tbtn" title="节拍器" aria-label="节拍器">MTR</button>
+          <button id="btn-midi" class="tbtn" title="连接 MIDI 键盘（Web MIDI）" aria-label="连接 MIDI 键盘">MIDI</button>
+          <span class="position" id="position" title="播放头位置" aria-label="播放头位置">1.1</span>
+        </div>
+
+        <div class="filebar">
+          <button id="btn-new" title="新建工程" aria-label="新建工程">新建</button>
+          <button id="btn-open" title="打开工程文件" aria-label="打开工程文件">打开</button>
+          <button id="btn-save" title="保存工程（Ctrl+S）" aria-label="保存工程">保存</button>
+          <span class="sep"></span>
+          <button id="btn-midi-import" title="导入 MIDI 文件" aria-label="导入 MIDI 文件">导入 MIDI</button>
+          <button id="btn-midi-export" title="导出 MIDI 文件" aria-label="导出 MIDI 文件">导出 MIDI</button>
+          <button id="btn-wav-import" title="导入 WAV 音频" aria-label="导入 WAV 音频">导入 WAV</button>
+          <button id="btn-wav-export" class="accent" title="离线渲染并下载整曲混音" aria-label="导出 WAV 混音">导出 WAV</button>
+          <button id="btn-stems-export" title="离线渲染并下载各轨分轨" aria-label="导出分轨">分轨</button>
+          <span class="sep"></span>
+          <button id="btn-undo" title="撤销 (Ctrl+Z)" aria-label="撤销" aria-keyshortcuts="Control+Z">↶</button>
+          <button id="btn-redo" title="重做 (Ctrl+Shift+Z)" aria-label="重做" aria-keyshortcuts="Control+Shift+Z">↷</button>
+          <button id="btn-retro" title="回溯录制：找回未按录音时弹过的灵感" aria-label="回溯录制">回溯</button>
+          <button id="btn-zoom-out" title="缩小" aria-label="缩小">−</button>
+          <button id="btn-zoom-in" title="放大" aria-label="放大">+</button>
+          <select id="snap" title="吸附" aria-label="吸附">
+            <option value="0.0625">1/16</option>
+            <option value="0.125">1/8</option>
+            <option value="0.25" selected>1/4</option>
+            <option value="0.5">1/2</option>
+            <option value="1">1 拍</option>
+          </select>
+          <span class="sep"></span>
+          <button id="btn-help" class="tbtn" title="快捷键与操作（? 或 F1）" aria-label="快捷键帮助" aria-keyshortcuts="?">?</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="panel left">
+          <div class="panel-title">素材库 <small>BROWSER</small></div>
+          <div id="browser" class="browser"></div>
+        </aside>
+
+        <div class="resizer resizer-v" id="resizer-left" role="separator" aria-orientation="vertical" aria-label="调整素材库宽度" tabindex="0"></div>
+
+        <section class="center">
+          <div class="section-head">
+            <span>编排时间轴</span>
+            <span id="timeline-info" class="section-info"></span>
+          </div>
+          <div class="timeline-wrap" id="timeline-wrap">
+            <canvas id="timeline-canvas"></canvas>
+          </div>
+          <div class="section-head">
+            <span>编辑视图</span>
+            <div class="view-switch">
+              <button id="btn-view-roll" class="tbtn on" title="钢琴卷帘" aria-label="钢琴卷帘">卷帘</button>
+              <button id="btn-view-staff" class="tbtn" title="五线谱（只读显示）" aria-label="五线谱">五线谱</button>
+            </div>
+            <span id="clip-info" class="section-info"></span>
+          </div>
+          <div class="chord-bar">
+            <label class="field">调<select id="scale-root"></select></label>
+            <label class="field">音阶<select id="scale-type"></select></label>
+            <span class="chord-list" id="chord-list"></span>
+          </div>
+          <div class="editor-wrap">
+            <canvas id="pianoroll-canvas"></canvas>
+          </div>
+        </section>
+
+        <div class="resizer resizer-v" id="resizer-right" role="separator" aria-orientation="vertical" aria-label="调整检查器宽度" tabindex="0"></div>
+
+        <aside class="panel right">
+          <div class="panel-title">轨道检查器 <small>INSPECTOR</small></div>
+          <div id="inspector" class="inspector"></div>
+          <div class="mixer-head">调音台</div>
+          <div id="mixer" class="mixer"></div>
+        </aside>
+      </main>
+
+      <div class="resizer resizer-h" id="resizer-keyboard" role="separator" aria-orientation="horizontal" aria-label="调整键盘区高度" tabindex="0"></div>
+
+      <div class="keyboard-dock">
+        <div id="keyboard"></div>
+      </div>
+
+      <footer class="statusbar">
+        <span id="status" role="status" aria-live="polite">就绪 · 点击「▶」开始播放</span>
+        <span id="busy" class="busy" hidden aria-hidden="true"><span class="spinner"></span><span class="busy-text">处理中…</span></span>
+        <span id="midi-info" class="midi-info">MIDI 未连接</span>
+        <span id="engine-info"></span>
+      </footer>
+    </div>
+
+    <input type="file" id="file-open" accept=".json,.swproj,application/json" hidden />
+    <input type="file" id="file-midi" accept=".mid,.midi,audio/midi,audio/x-midi" hidden />
+    <input type="file" id="file-audio" accept=".wav,audio/wav,audio/x-wav" hidden />
+
+    <div id="help-overlay" class="help-overlay" hidden>
+      <div class="help-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <header class="help-head">
+          <h2 id="help-title">快捷键与操作</h2>
+          <button id="help-close" class="icon-btn" aria-label="关闭帮助">✕</button>
+        </header>
+        <div class="help-body">
+          <section class="help-group">
+            <h3>走带与工程</h3>
+            <ul>
+              <li><kbd>空格</kbd><span>播放 / 暂停</span></li>
+              <li><kbd>Esc</kbd><span>停止 / 关闭本帮助</span></li>
+              <li><kbd>Ctrl</kbd><kbd>Z</kbd><span>撤销</span></li>
+              <li><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Z</kbd> / <kbd>Ctrl</kbd><kbd>Y</kbd><span>重做</span></li>
+              <li><kbd>Ctrl</kbd><kbd>S</kbd><span>保存工程</span></li>
+            </ul>
+          </section>
+          <section class="help-group">
+            <h3>编辑音符</h3>
+            <ul>
+              <li><kbd>Ctrl</kbd><kbd>A</kbd><span>全选音符</span></li>
+              <li><kbd>Ctrl</kbd><kbd>C</kbd><span>复制所选音符</span></li>
+              <li><kbd>Ctrl</kbd><kbd>V</kbd><span>粘贴音符</span></li>
+              <li><kbd>↑</kbd><kbd>↓</kbd><span>半音移调</span></li>
+              <li><kbd>←</kbd><kbd>→</kbd><span>按吸附横移</span></li>
+              <li><kbd>Del</kbd> / <kbd>Backspace</kbd><span>删除音符 / 片段</span></li>
+            </ul>
+          </section>
+          <section class="help-group">
+            <h3>键盘演奏</h3>
+            <ul>
+              <li><kbd>Z</kbd>–<kbd>M</kbd><span>下排白键</span></li>
+              <li><kbd>Q</kbd>–<kbd>P</kbd><span>上排扩展</span></li>
+              <li><kbd>[</kbd> <kbd>]</kbd><span>降低 / 升高八度</span></li>
+              <li><kbd>?</kbd> / <kbd>F1</kbd><span>打开 / 关闭帮助</span></li>
+            </ul>
+          </section>
+          <p class="help-foot">提示：点击时间轴可移动播放头；拖动音符可调整音高与时长；双击音符在检查器编辑细节。</p>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

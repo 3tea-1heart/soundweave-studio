@@ -1,0 +1,342 @@
+import processorSource from '../audio/studio-processor.js?raw';
+import type { Project, Track, InstrumentType, AudioAsset } from './types';
+import { decodeAssetPcm } from './audio-asset';
+import { beatsToSeconds } from './tempo';
+import { buildSessionPlan, PREVIEW_TRACK_INDEX as PREVIEW_TRACK, trackMessage } from './session';
+import { presetTrackFx } from './presets';
+
+const WORKLET_NAME = 'soundweave-studio';
+
+/** 事件来源与代际：transport / click / automation / preview / live */
+export interface SourceMeta {
+  src?: string;
+  gen?: number;
+}
+
+export interface OfflineOptions {
+  sampleRate?: number;
+  onlyTrack?: string;
+  tailSeconds?: number;
+  onProgress?: (done: number, total: number) => void;
+}
+
+function workletUrl(): string {
+  // 去掉 ESM export 语句，Worklet 模块只需 registerProcessor
+  const src = processorSource.replace(/export\s*\{[\s\S]*?\}\s*;\s*/g, '');
+  return URL.createObjectURL(new Blob([src], { type: 'application/javascript' }));
+}
+
+export class AudioEngine {
+  ctx: AudioContext | null = null;
+  node: AudioWorkletNode | null = null;
+  ready = false;
+  onLevels: ((peak: number, tracks: number[]) => void) | null = null;
+  sampleRate = 48000;
+  private previewGen = 0;
+
+  async ensure(): Promise<AudioContext> {
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      return this.ctx;
+    }
+    const ctx = new AudioContext({ latencyHint: 'interactive' });
+    this.ctx = ctx;
+    this.sampleRate = ctx.sampleRate;
+    const url = workletUrl();
+    try {
+      await ctx.audioWorklet.addModule(url);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    const node = new AudioWorkletNode(ctx, WORKLET_NAME, {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [2],
+    });
+    node.port.onmessage = (e) => {
+      const d = e.data;
+      if (d && d.type === 'levels' && this.onLevels) this.onLevels(d.peak, d.tracks);
+    };
+    node.connect(ctx.destination);
+    this.node = node;
+    this.ready = true;
+    return ctx;
+  }
+
+  post(msg: Record<string, unknown>): void {
+    if (!this.node) return;
+    this.node.port.postMessage(msg);
+  }
+
+  syncTrack(track: Track, index: number, overrides: Record<string, unknown> = {}): void {
+    this.post(trackMessage(track, index, overrides));
+  }
+
+  syncProject(project: Project, opts: { muteOthersFor?: string } = {}): void {
+    project.tracks.slice(0, 15).forEach((t, i) => {
+      if (opts.muteOthersFor) {
+        this.syncTrack(t, i, { mute: t.id !== opts.muteOthersFor, solo: false });
+      } else {
+        this.syncTrack(t, i);
+      }
+    });
+    this.post({ type: 'master', volume: project.master.volume });
+  }
+
+  note(
+    trackIndex: number,
+    pitch: number,
+    velocity: number,
+    when: number,
+    dur: number,
+    id: string,
+    art = 'normal',
+    meta: SourceMeta = {},
+  ): void {
+    this.post({
+      type: 'note',
+      track: trackIndex,
+      pitch,
+      velocity,
+      when,
+      dur,
+      id,
+      art,
+      src: meta.src || 'live',
+      gen: meta.gen,
+    });
+  }
+
+  noteOff(trackIndex: number, id: string, when?: number): void {
+    this.post({ type: 'noteOff', track: trackIndex, id, when, src: 'live' });
+  }
+
+  allNotesOff(): void {
+    this.post({ type: 'allNotesOff' });
+  }
+
+  /** 弯音：semitones 为 ±2 半音 */
+  bend(trackIndex: number, semitones: number): void {
+    this.post({ type: 'bend', track: trackIndex, value: semitones });
+  }
+
+  /** 触后：0–1，通道级音量/亮度调制 */
+  pressure(trackIndex: number, value: number): void {
+    this.post({ type: 'pressure', track: trackIndex, value });
+  }
+
+  panic(): void {
+    this.post({ type: 'panic' });
+  }
+
+  /**
+   * 注册 WAV 素材：PCM 在引擎侧解码后以 Float32 声道发送给 Worklet。
+   * 返回 false 表示素材没有 PCM（自动保存剥离或缺失），无法播放。
+   */
+  registerAsset(asset: AudioAsset): boolean {
+    const channels = decodeAssetPcm(asset);
+    if (!channels) return false;
+    this.post({
+      type: 'asset',
+      assetId: asset.id,
+      sampleRate: asset.sampleRate,
+      channels,
+    });
+    return true;
+  }
+
+  /** 批量注册工程内所有带 PCM 的素材（载入工程后调用） */
+  syncAssets(project: Project): void {
+    for (const asset of project.audioAssets || []) this.registerAsset(asset);
+  }
+
+  /** 排程一段音频素材；dur 为片段时长（秒），0 表示播放到素材结束 */
+  audio(
+    trackIndex: number,
+    assetId: string,
+    when: number,
+    offsetSec: number,
+    dur: number,
+    gain: number,
+    id: string,
+    meta: SourceMeta = {},
+  ): void {
+    this.post({
+      type: 'audio',
+      track: trackIndex,
+      assetId,
+      when,
+      offsetSec,
+      dur,
+      gain,
+      id,
+      src: meta.src || 'transport',
+      gen: meta.gen,
+    });
+  }
+
+  /** 按来源与代际取消事件/释放声部 */
+  resetSource(src: string, gen?: number): void {
+    this.post({ type: 'resetSource', src, gen });
+  }
+
+  metronome(when: number, accent: boolean, meta: SourceMeta = {}): void {
+    this.post({ type: 'metronome', when, accent, src: meta.src || 'click', gen: meta.gen });
+  }
+
+  /** 预设试听 / 用户演奏使用专用预览轨，避免污染工程轨道 */
+  setPreview(
+    instrumentType: InstrumentType,
+    params: Record<string, number>,
+    volume = 0.85,
+    fx: { drive?: number; chorus?: number } = {},
+  ): void {
+    this.post({
+      type: 'track',
+      track: PREVIEW_TRACK,
+      instrumentType,
+      params,
+      volume,
+      pan: 0,
+      mute: false,
+      solo: false,
+      sendReverb: 0.1,
+      sendDelay: 0,
+      tone: 1,
+      drive: fx.drive ?? 0,
+      chorus: fx.chorus ?? 0,
+    });
+  }
+
+  previewNote(pitch: number, velocity: number, dur: number, id: string, art = 'normal'): void {
+    this.post({
+      type: 'note', track: PREVIEW_TRACK, pitch, velocity, when: 0, dur, id, art,
+      src: 'preview', gen: this.previewGen,
+    });
+  }
+
+  previewNoteOff(id: string): void {
+    this.post({ type: 'noteOff', track: PREVIEW_TRACK, id, src: 'preview' });
+  }
+
+  async previewNotes(
+    notes: Array<{ pitch: number; start: number; length: number; velocity: number }>,
+    bpm: number,
+    instrumentType: InstrumentType,
+    params: Record<string, number>,
+    art = 'normal',
+    fx?: { drive?: number; chorus?: number },
+  ): Promise<void> {
+    await this.ensure();
+    this.setPreview(instrumentType, params, 0.85, fx ?? presetTrackFx(instrumentType, params));
+    this.previewGen++;
+    this.resetSource('preview', this.previewGen);
+    const origin = (this.ctx?.currentTime || 0) + 0.06;
+    for (const n of notes) {
+      this.post({
+        type: 'note',
+        track: PREVIEW_TRACK,
+        pitch: n.pitch,
+        velocity: n.velocity,
+        when: origin + beatsToSeconds(n.start, bpm),
+        dur: beatsToSeconds(n.length, bpm),
+        id: `pv_${this.previewGen}_${Math.random().toString(36).slice(2)}`,
+        art,
+        src: 'preview',
+        gen: this.previewGen,
+      });
+    }
+  }
+
+  async renderOffline(project: Project, opts: OfflineOptions = {}): Promise<AudioBuffer> {
+    const sampleRate = opts.sampleRate || 48000;
+    const plan = buildSessionPlan(project, { onlyTrack: opts.onlyTrack });
+    const seconds = beatsToSeconds(plan.endBeat, project.tempo) + (opts.tailSeconds ?? 1.6);
+    const frames = Math.max(1, Math.ceil(seconds * sampleRate));
+    const ctx = new OfflineAudioContext(2, frames, sampleRate);
+    const url = workletUrl();
+    try {
+      await ctx.audioWorklet.addModule(url);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    const node = new AudioWorkletNode(ctx, WORKLET_NAME, {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [2],
+    });
+    node.connect(ctx.destination);
+
+    const post = (msg: Record<string, unknown>) => node.port.postMessage(msg);
+    // 素材先于事件下发；缺失 PCM 的素材不注册，对应片段将被静默跳过
+    for (const asset of project.audioAssets || []) {
+      const channels = decodeAssetPcm(asset);
+      if (!channels) continue;
+      post({ type: 'asset', assetId: asset.id, sampleRate: asset.sampleRate, channels });
+    }
+    // 轨道消息与实时播放共用同一构建函数：完整混音保留 mute/solo，分轨规则由计划决定
+    for (const { message } of plan.trackMessages) post(message);
+    post({ type: 'master', volume: project.master.volume });
+
+    const spb = 60 / project.tempo;
+    for (const n of plan.notes) {
+      post({
+        type: 'note',
+        track: n.trackIndex,
+        pitch: n.pitch,
+        velocity: n.velocity,
+        when: n.startBeat * spb,
+        dur: (n.endBeat - n.startBeat) * spb,
+        id: `${n.clipId}:${n.noteId}`,
+        art: n.articulation,
+        src: 'transport',
+        gen: 0,
+      });
+    }
+
+    // 音频片段：与音符同一条时间轴，片段按素材原生采样率在 Worklet 内重采样
+    for (const a of plan.audio) {
+      post({
+        type: 'audio',
+        track: a.trackIndex,
+        assetId: a.assetId,
+        when: a.startBeat * spb,
+        offsetSec: a.offsetSec,
+        dur: (a.endBeat - a.startBeat) * spb,
+        gain: a.gain,
+        id: `${a.clipId}:${a.startBeat}`,
+        src: 'transport',
+        gen: 0,
+      });
+    }
+
+    // 自动化：与实时播放相同的固定网格采样，避免实时/离线控制值分叉
+    for (const c of plan.controls) {
+      post({
+        type: 'track',
+        track: c.trackIndex,
+        when: c.beat * spb,
+        src: 'automation',
+        gen: 0,
+        ...c.message,
+      });
+    }
+
+    const buffer = await ctx.startRendering();
+    return buffer;
+  }
+
+  /** 分轨导出：逐轨离线渲染（含发送效果与尾音） */
+  async renderStems(project: Project, onProgress?: (done: number, total: number) => void): Promise<Array<{ track: Track; buffer: AudioBuffer }>> {
+    const out: Array<{ track: Track; buffer: AudioBuffer }> = [];
+    const tracks = project.tracks.slice(0, 15);
+    for (let i = 0; i < tracks.length; i++) {
+      out.push({ track: tracks[i], buffer: await this.renderOffline(project, { onlyTrack: tracks[i].id }) });
+      onProgress?.(i + 1, tracks.length);
+    }
+    return out;
+  }
+}
+
+export const engine = new AudioEngine();
+export const PREVIEW_TRACK_INDEX = PREVIEW_TRACK;

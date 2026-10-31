@@ -1,0 +1,23 @@
+{
+  "name": "soundweave-studio",
+  "private": true,
+  "version": "0.7.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "description": "声织 SoundWeave - 轻量音色编曲工作站",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "render-test": "node tools/render-test.mjs",
+    "exe": "npm run build && node electron/package.mjs",
+    "exe:smoke": "node electron/smoke.mjs"
+  },
+  "devDependencies": {
+    "@electron/asar": "^4.3.1",
+    "@electron/packager": "^20.3.0",
+    "electron": "^45.2.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5"
+  }
+}
