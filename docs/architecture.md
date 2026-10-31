@@ -55,6 +55,9 @@ src/core/demos.ts       示例工程
 src/core/retro.ts       回溯录制：滚动缓冲与写回当前片段（v0.7.0）
 src/core/notation.ts    五线谱记谱换算：MIDI 音高 → 音名/升降/谱表步进（v0.7.0）
 src/core/scales.ts      音阶、自然七和弦拼写与实时和弦建议（v0.7.0）
+src/core/sample-bank.ts 采样音源清单与 16-bit WAV 读取、按库加载（v0.7.2）
+src/samples/manifest.json 采样清单：根音 / 力度层 / 循环点 / 授权（由 tools/sample-build.py 生成）
+public/samples/         48 kHz / 16-bit 单声道采样 WAV（随构建复制进 dist/）
 src/audio/studio-processor.js  DSP（无 TS，供 Worklet/Node 共用）
 src/audio/wav.ts        WAV 编码（float32 -> 16/24bit PCM）
 src/ui/*.ts             视图（时间轴、卷帘、混音器、浏览器、键盘、检查器）
@@ -99,3 +102,4 @@ tools/render-test.mjs   Node 端 DSP 渲染 + WAV 数值校验
 4. 本地持久化受浏览器配额限制；同时提供工程文件导出/导入作为兜底。
 5. 不做第三方插件宿主；五线谱只提供只读显示视图（v0.7.0），不做可编辑记谱器与 MusicXML（P5 范围）。
 6. 无法由 Agent 完成主观听感验收的部分，明确标注“待试听”。
+7. 采样音源（v0.7.2）：Web 版与 EXE 都从 `samples/` 同源静态目录读取；采样以 Int16 存入音频线程（避免整库 Float32 占内存），按需加载、节点重建后自动补发；清单缺失、音域外或鼓组缺键位时回退合成音源，不静音。新增授权与素材台账见 `docs/samples.md`。

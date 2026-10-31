@@ -175,7 +175,7 @@ function centsError(actual, expected) {
 
 // ---------------------------------------------------------------- 1. 预设审计
 console.log('— 预设参数审计 —');
-check('预设数量保持 64 个', PRESETS.length === 64, `${PRESETS.length}`);
+check('预设数量保持 68 个（64 合成 + 4 采样）', PRESETS.length === 68, `${PRESETS.length}`);
 check('预设 ID 唯一', new Set(PRESETS.map((p) => p.id)).size === PRESETS.length);
 const BUILTIN_CATEGORIES = PRESET_CATEGORIES.filter((c) => c !== '我的音色');
 check(
@@ -389,7 +389,7 @@ for (const preset of PRESETS) {
   if (s.over > 0) clippedPresets.push(`${preset.id}(peak=${s.peak.toFixed(3)})`);
   if (attack > longest * 0.9) attackTooLong.push(`${preset.id}(attack=${attack}s, note=${longest.toFixed(2)}s)`);
 }
-check('全预设试听：64 个预设均能发声', silentPresets.length === 0, silentPresets.slice(0, 6).join('；'));
+check('全预设试听：68 个预设均能发声', silentPresets.length === 0, silentPresets.slice(0, 6).join('；'));
 check('全预设试听：无削波输出', clippedPresets.length === 0, clippedPresets.slice(0, 6).join('；'));
 check('全预设试听：试听乐句长度覆盖起音', attackTooLong.length === 0, attackTooLong.slice(0, 6).join('；'));
 

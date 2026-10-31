@@ -59,6 +59,7 @@ child.on('exit', (code) => {
   check('播放推进', result.position !== '1.1', `position=${result.position}`);
   check('导出成功提示', /已导出 WAV/.test(result.status || ''), result.status);
   check('控制台无警告/错误', (result.logs || []).length === 0, (result.logs || []).slice(0, 3).join(' | '));
+  check('采样音源随包可读取', (result.sampleBytes || 0) > 100000, `${result.sampleBytes || 0} 字节`);
 
   const wavs = fs.readdirSync(WORK).filter((f) => f.toLowerCase().endsWith('.wav'));
   check('生成了 WAV 文件', wavs.length === 1, wavs.join(','));

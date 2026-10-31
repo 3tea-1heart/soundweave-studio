@@ -81,9 +81,10 @@ export function createEmptyProject(): Project {
     timeSig: [4, 4],
     loop: { enabled: true, start: 0, end: 16 },
     tracks: [
-      createTrack(0, { presetId: 'ep-warm', type: 'ep', params: {} }, '电钢琴'),
-      createTrack(1, { presetId: 'bass-sub', type: 'bass', params: {} }, '贝斯'),
-      createTrack(2, { presetId: 'drum-house', type: 'drum', params: {} }, '鼓机'),
+      // 默认工程使用真实采样音源，打开即可听到自然的钢琴/贝斯/鼓
+      createTrack(0, { presetId: 'piano-upright-kw', type: 'piano', params: {} }, '钢琴'),
+      createTrack(1, { presetId: 'bass-finger-yr', type: 'bass', params: {} }, '贝斯'),
+      createTrack(2, { presetId: 'drum-muldjord', type: 'drum', params: {} }, '鼓机'),
     ],
     clips: [],
     master: { volume: 0.9 },

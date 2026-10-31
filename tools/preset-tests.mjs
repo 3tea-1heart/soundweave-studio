@@ -162,11 +162,11 @@ function reset() {
 // ---------------------------------------------------------------- 与内置预设的合并
 {
   reset();
-  check('内置：预设数量保持 64', presetsMod.PRESETS.length === 64);
+  check('内置：预设数量保持 68 个（64 合成 + 4 采样）', presetsMod.PRESETS.length === 68);
   check('内置：分类包含「我的音色」', presetsMod.PRESET_CATEGORIES.includes('我的音色'));
 
   mod.addUserPreset(sample('u9', '合并测试', { type: 'synth', params: { cutoff: 900, resonance: 0.4 } }));
-  check('合并：allPresets 包含自定义音色', presetsMod.allPresets().length === 65);
+  check('合并：allPresets 包含自定义音色', presetsMod.allPresets().length === 69);
   check('合并：presetById 能查到自定义音色', presetsMod.presetById('u9')?.name === '合并测试');
   check('合并：用户音色带 custom 标记', presetsMod.presetById('u9')?.custom === true);
   check('合并：内置音色不受影响', presetsMod.presetById('ep-warm')?.name === '暖电钢');

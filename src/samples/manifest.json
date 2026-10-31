@@ -1,0 +1,1286 @@
+{
+  "version": 1,
+  "sampleRate": 48000,
+  "banks": [
+    {
+      "id": "piano-kw",
+      "name": "立式钢琴 KW",
+      "kind": "pitched",
+      "type": "piano",
+      "license": "CC0 1.0",
+      "source": "FreePats · Upright Piano KW 2022-02-21（Kawai 立式钢琴实录）",
+      "samples": [
+        {
+          "file": "samples/piano-kw/A0vL.wav",
+          "pitch": 21,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 5.5494,
+          "loopEnd": 7.5693
+        },
+        {
+          "file": "samples/piano-kw/A0vH.wav",
+          "pitch": 21,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 5.1463,
+          "loopEnd": 7.0344
+        },
+        {
+          "file": "samples/piano-kw/B0vH.wav",
+          "pitch": 23,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 5.4142,
+          "loopEnd": 7.545
+        },
+        {
+          "file": "samples/piano-kw/C1vL.wav",
+          "pitch": 24,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 7.3725,
+          "loopEnd": 10.6845
+        },
+        {
+          "file": "samples/piano-kw/C1vH.wav",
+          "pitch": 24,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 6.9473,
+          "loopEnd": 9.6294
+        },
+        {
+          "file": "samples/piano-kw/D#1vL.wav",
+          "pitch": 27,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 9.3469,
+          "loopEnd": 12.8401
+        },
+        {
+          "file": "samples/piano-kw/D#1vH.wav",
+          "pitch": 27,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 7.8398,
+          "loopEnd": 10.4716
+        },
+        {
+          "file": "samples/piano-kw/F#1vL.wav",
+          "pitch": 30,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 7.6144,
+          "loopEnd": 11.0425
+        },
+        {
+          "file": "samples/piano-kw/F#1vH.wav",
+          "pitch": 30,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 5.4582,
+          "loopEnd": 7.9718
+        },
+        {
+          "file": "samples/piano-kw/A1vL.wav",
+          "pitch": 33,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 7.9036,
+          "loopEnd": 11.8828
+        },
+        {
+          "file": "samples/piano-kw/A1vH.wav",
+          "pitch": 33,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 7.5336,
+          "loopEnd": 10.0325
+        },
+        {
+          "file": "samples/piano-kw/B1vH.wav",
+          "pitch": 35,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 5.8158,
+          "loopEnd": 8.3205
+        },
+        {
+          "file": "samples/piano-kw/C2vL.wav",
+          "pitch": 36,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 9.0144,
+          "loopEnd": 11.5734
+        },
+        {
+          "file": "samples/piano-kw/C2vH.wav",
+          "pitch": 36,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 5.8194,
+          "loopEnd": 8.5392
+        },
+        {
+          "file": "samples/piano-kw/D#2vL.wav",
+          "pitch": 39,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 9.6387,
+          "loopEnd": 13.2694
+        },
+        {
+          "file": "samples/piano-kw/D#2vH.wav",
+          "pitch": 39,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 6.5344,
+          "loopEnd": 9.0349
+        },
+        {
+          "file": "samples/piano-kw/F#2vL.wav",
+          "pitch": 42,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 7.4373,
+          "loopEnd": 9.9447
+        },
+        {
+          "file": "samples/piano-kw/F#2vH.wav",
+          "pitch": 42,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 5.6743,
+          "loopEnd": 8.9232
+        },
+        {
+          "file": "samples/piano-kw/A2vL.wav",
+          "pitch": 45,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 5.4488,
+          "loopEnd": 8.1895
+        },
+        {
+          "file": "samples/piano-kw/B2vH.wav",
+          "pitch": 47,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 5.4181,
+          "loopEnd": 7.7392
+        },
+        {
+          "file": "samples/piano-kw/C3vL.wav",
+          "pitch": 48,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 3.1232,
+          "loopEnd": 4.8225
+        },
+        {
+          "file": "samples/piano-kw/C3vH.wav",
+          "pitch": 48,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 4.4617,
+          "loopEnd": 6.963
+        },
+        {
+          "file": "samples/piano-kw/D#3vL.wav",
+          "pitch": 51,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 4.2747,
+          "loopEnd": 5.7965
+        },
+        {
+          "file": "samples/piano-kw/D#3vH.wav",
+          "pitch": 51,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 3.6958,
+          "loopEnd": 5.4493
+        },
+        {
+          "file": "samples/piano-kw/F#3vL.wav",
+          "pitch": 54,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 3.0452,
+          "loopEnd": 4.8522
+        },
+        {
+          "file": "samples/piano-kw/F#3vH.wav",
+          "pitch": 54,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 4.4069,
+          "loopEnd": 6.0234
+        },
+        {
+          "file": "samples/piano-kw/A3vL.wav",
+          "pitch": 57,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 3.9385,
+          "loopEnd": 6.4326
+        },
+        {
+          "file": "samples/piano-kw/A3vH.wav",
+          "pitch": 57,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 2.7365,
+          "loopEnd": 4.2359
+        },
+        {
+          "file": "samples/piano-kw/B3vH.wav",
+          "pitch": 59,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 3.6966,
+          "loopEnd": 5.1605
+        },
+        {
+          "file": "samples/piano-kw/C4vL.wav",
+          "pitch": 60,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 4.521,
+          "loopEnd": 8.0328
+        },
+        {
+          "file": "samples/piano-kw/D#4vL.wav",
+          "pitch": 63,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": 2.5266,
+          "loopEnd": 4.1895
+        },
+        {
+          "file": "samples/piano-kw/D#4vH.wav",
+          "pitch": 63,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": 3.4444,
+          "loopEnd": 4.9342
+        },
+        {
+          "file": "samples/piano-kw/A4vL.wav",
+          "pitch": 69,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/A4vH.wav",
+          "pitch": 69,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/B4vH.wav",
+          "pitch": 71,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/C5vL.wav",
+          "pitch": 72,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/C5vH.wav",
+          "pitch": 72,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/D#5vL.wav",
+          "pitch": 75,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/D#5vH.wav",
+          "pitch": 75,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/F#5vL.wav",
+          "pitch": 78,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/F#5vH.wav",
+          "pitch": 78,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/A5vL.wav",
+          "pitch": 81,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/A5vH.wav",
+          "pitch": 81,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/B5vH.wav",
+          "pitch": 83,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/C6vL.wav",
+          "pitch": 84,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/C6vH.wav",
+          "pitch": 84,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/D#6vL.wav",
+          "pitch": 87,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/D#6vH.wav",
+          "pitch": 87,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/F#6vL.wav",
+          "pitch": 90,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/F#6vH.wav",
+          "pitch": 90,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/A6vL.wav",
+          "pitch": 93,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/A6vH.wav",
+          "pitch": 93,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/B6vH.wav",
+          "pitch": 95,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/C7vL.wav",
+          "pitch": 96,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/C7vH.wav",
+          "pitch": 96,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/D#7vL.wav",
+          "pitch": 99,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/D#7vH.wav",
+          "pitch": 99,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/F#7vL.wav",
+          "pitch": 102,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/F#7vH.wav",
+          "pitch": 102,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/A7vL.wav",
+          "pitch": 105,
+          "velMin": 0.0,
+          "velMax": 0.63,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/A7vH.wav",
+          "pitch": 105,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/B7vH.wav",
+          "pitch": 107,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/piano-kw/C8vH.wav",
+          "pitch": 108,
+          "velMin": 0.638,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        }
+      ]
+    },
+    {
+      "id": "guitar-fss",
+      "name": "钢弦民谣吉他 FSS",
+      "kind": "pitched",
+      "type": "guitar",
+      "license": "GPLv3 + FreePats 采样例外",
+      "source": "FreePats · FSS Steel-String Acoustic Guitar 2020-05-21（FlameStudios 录制）",
+      "samples": [
+        {
+          "file": "samples/guitar-fss/MV_40.wav",
+          "pitch": 40,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_40.wav",
+          "pitch": 40,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_41.wav",
+          "pitch": 41,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_42.wav",
+          "pitch": 42,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_43.wav",
+          "pitch": 43,
+          "velMin": 0.0,
+          "velMax": 0.701,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_43.wav",
+          "pitch": 43,
+          "velMin": 0.709,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_44.wav",
+          "pitch": 44,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_44.wav",
+          "pitch": 44,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_45.wav",
+          "pitch": 45,
+          "velMin": 0.0,
+          "velMax": 0.78,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_45.wav",
+          "pitch": 45,
+          "velMin": 0.787,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_46.wav",
+          "pitch": 46,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_47.wav",
+          "pitch": 47,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_48.wav",
+          "pitch": 48,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_49.wav",
+          "pitch": 49,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_50.wav",
+          "pitch": 50,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_50.wav",
+          "pitch": 50,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_51.wav",
+          "pitch": 51,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_51.wav",
+          "pitch": 51,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_52.wav",
+          "pitch": 52,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_53.wav",
+          "pitch": 53,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_54.wav",
+          "pitch": 54,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_55.wav",
+          "pitch": 55,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_55.wav",
+          "pitch": 55,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_56.wav",
+          "pitch": 56,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_56.wav",
+          "pitch": 56,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_57.wav",
+          "pitch": 57,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_58.wav",
+          "pitch": 58,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_59.wav",
+          "pitch": 59,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_60.wav",
+          "pitch": 60,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_61.wav",
+          "pitch": 61,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_62.wav",
+          "pitch": 62,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_63.wav",
+          "pitch": 63,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_64.wav",
+          "pitch": 64,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_65.wav",
+          "pitch": 65,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_66.wav",
+          "pitch": 66,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_67.wav",
+          "pitch": 67,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_68.wav",
+          "pitch": 68,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_69.wav",
+          "pitch": 69,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_70.wav",
+          "pitch": 70,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_71.wav",
+          "pitch": 71,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_72.wav",
+          "pitch": 72,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_72.wav",
+          "pitch": 72,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_73.wav",
+          "pitch": 73,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_73.wav",
+          "pitch": 73,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_74.wav",
+          "pitch": 74,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_75.wav",
+          "pitch": 75,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_76.wav",
+          "pitch": 76,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_77.wav",
+          "pitch": 77,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_78.wav",
+          "pitch": 78,
+          "velMin": 0.0,
+          "velMax": 0.732,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_78.wav",
+          "pitch": 78,
+          "velMin": 0.74,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_79.wav",
+          "pitch": 79,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_80.wav",
+          "pitch": 80,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_80.wav",
+          "pitch": 80,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_81.wav",
+          "pitch": 81,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_82.wav",
+          "pitch": 82,
+          "velMin": 0.0,
+          "velMax": 0.646,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_82.wav",
+          "pitch": 82,
+          "velMin": 0.654,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_83.wav",
+          "pitch": 83,
+          "velMin": 0.0,
+          "velMax": 0.74,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/HV_83.wav",
+          "pitch": 83,
+          "velMin": 0.748,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/guitar-fss/MV_84.wav",
+          "pitch": 84,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        }
+      ]
+    },
+    {
+      "id": "bass-yr",
+      "name": "指弹电贝斯 YR",
+      "kind": "pitched",
+      "type": "bass",
+      "license": "CC0 1.0",
+      "source": "FreePats · Finger Bass YR 2019-09-30（Yamaha RBX 实录）",
+      "samples": [
+        {
+          "file": "samples/bass-yr/E.wav",
+          "pitch": 28,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/F.wav",
+          "pitch": 29,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/F#.wav",
+          "pitch": 30,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/G.wav",
+          "pitch": 31,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/G#.wav",
+          "pitch": 32,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/A.wav",
+          "pitch": 33,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/A#.wav",
+          "pitch": 34,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/B.wav",
+          "pitch": 35,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/C.wav",
+          "pitch": 36,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/C#.wav",
+          "pitch": 37,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/D.wav",
+          "pitch": 38,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/bass-yr/D#.wav",
+          "pitch": 39,
+          "velMin": 0.0,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        }
+      ]
+    },
+    {
+      "id": "drums-muldjord",
+      "name": "原声鼓组 Muldjord",
+      "kind": "drums",
+      "type": "drum",
+      "license": "CC BY 4.0",
+      "source": "FreePats · MuldjordKit 2020-10-18（Lars Muldjord 录制）",
+      "samples": [
+        {
+          "file": "samples/drums-muldjord/14-KdrumL.wav",
+          "pitch": 36,
+          "velMin": 0.0,
+          "velMax": 0.45,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/21-KdrumL.wav",
+          "pitch": 36,
+          "velMin": 0.45,
+          "velMax": 0.8,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/7-KdrumL.wav",
+          "pitch": 36,
+          "velMin": 0.8,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/2-Snare.wav",
+          "pitch": 38,
+          "velMin": 0.0,
+          "velMax": 0.45,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/37-Snare.wav",
+          "pitch": 38,
+          "velMin": 0.45,
+          "velMax": 0.8,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/55-Snare.wav",
+          "pitch": 38,
+          "velMin": 0.8,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/11-Tom2.wav",
+          "pitch": 41,
+          "velMin": 0.0,
+          "velMax": 0.45,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/4-Tom2.wav",
+          "pitch": 41,
+          "velMin": 0.45,
+          "velMax": 0.8,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/8-Tom2.wav",
+          "pitch": 41,
+          "velMin": 0.8,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/13-Tom4.wav",
+          "pitch": 45,
+          "velMin": 0.0,
+          "velMax": 0.45,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/2-Tom4.wav",
+          "pitch": 45,
+          "velMin": 0.45,
+          "velMax": 0.8,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/8-Tom4.wav",
+          "pitch": 45,
+          "velMin": 0.8,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/14-HihatClosed.wav",
+          "pitch": 42,
+          "velMin": 0.0,
+          "velMax": 0.45,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/23-HihatClosed.wav",
+          "pitch": 42,
+          "velMin": 0.45,
+          "velMax": 0.8,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/7-HihatClosed.wav",
+          "pitch": 42,
+          "velMin": 0.8,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/15-HihatOpen.wav",
+          "pitch": 44,
+          "velMin": 0.0,
+          "velMax": 0.45,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/24-HihatOpen.wav",
+          "pitch": 44,
+          "velMin": 0.45,
+          "velMax": 0.8,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/7-HihatOpen.wav",
+          "pitch": 44,
+          "velMin": 0.8,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/2-CrashL.wav",
+          "pitch": 51,
+          "velMin": 0.0,
+          "velMax": 0.45,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/5-CrashL.wav",
+          "pitch": 51,
+          "velMin": 0.45,
+          "velMax": 0.8,
+          "loopStart": null,
+          "loopEnd": null
+        },
+        {
+          "file": "samples/drums-muldjord/9-CrashL.wav",
+          "pitch": 51,
+          "velMin": 0.8,
+          "velMax": 1.0,
+          "loopStart": null,
+          "loopEnd": null
+        }
+      ]
+    }
+  ]
+}

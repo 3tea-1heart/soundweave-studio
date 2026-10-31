@@ -947,14 +947,69 @@ class AudioVoice {
 // ----------------------------------------------------------------------------
 // track
 // ----------------------------------------------------------------------------
+/**
+ * 采样音源声部：按音高选最近采样、线性插值变调，有循环点时循环到采样结束。
+ * 采样以 Int16 存放，渲染时才换算成浮点，避免整库 Float32 占满音频线程内存。
+ */
+class SampleVoice extends Voice {
+  constructor(sr, track, pitch, velocity, noteId, art, seed, sample) {
+    super(sr, track, pitch, velocity, noteId, art, seed);
+    this.data = sample.data;
+    this.rate = Math.pow(2, (pitch - sample.pitch) / 12) * (sample.sampleRate / sr);
+    this.baseRate = this.rate;
+    this.pos = 0;
+    this.loopStart = sample.loopStart;
+    this.loopEnd = sample.loopEnd;
+    this.loopLen = Math.max(1, this.loopEnd - this.loopStart);
+    this.velGain = 0.78 + 0.22 * velocity;
+    // 力度差已由采样层表决定，这里只补一层轻微包络，避免同层不同力度完全同响度
+    this.env.config(0.004, 0, 1, 0.14);
+    this.env.trigger();
+    this.piece = DRUM_MAP[pitch] || null;
+  }
+  retune(semi) {
+    this.rate = this.baseRate * Math.pow(2, semi / 12);
+  }
+  renderTo(buf, n) {
+    const d = this.data;
+    const last = d.length - 1;
+    for (let i = 0; i < n; i++) {
+      if (this.env.stage === 0) {
+        this.done = true;
+        break;
+      }
+      const env = this.env.tick();
+      let p = this.pos;
+      if (p >= last) {
+        this.done = true;
+        break;
+      }
+      const i0 = p | 0;
+      const f = p - i0;
+      const s = (d[i0] + (d[i0 + 1] - d[i0]) * f) * 3.0517578125e-5;
+      buf[i] += s * env * this.velGain;
+      this.pos = p + this.rate;
+      if (this.loopEnd > 0 && this.pos >= this.loopEnd) {
+        this.pos = this.loopStart + ((this.pos - this.loopEnd) % this.loopLen);
+      }
+      this.samples++;
+      if (!this.released && this.samples >= this.durSamples) this.release();
+    }
+    if (this.pos >= last) this.done = true;
+  }
+}
+
 class Track {
-  constructor(sr, index) {
+  constructor(sr, index, owner) {
     this.sr = sr;
     this.index = index;
+    this.owner = owner || null;
     this.type = 'synth';
     this.p = defaultParams('synth');
     this.target = Object.assign({}, this.p);
     this.voices = [];
+    /** 采样音源库 id；非空时优先用采样发声，库未加载或超出覆盖范围则回退合成音源 */
+    this.sampleBank = null;
     this.volume = 1;
     this.volumeTarget = 1;
     this.pan = 0;
@@ -1042,6 +1097,32 @@ class Track {
     this.panGain[0] = Math.cos(a) * Math.SQRT2;
     this.panGain[1] = Math.sin(a) * Math.SQRT2;
   }
+  /** 按音高与力度挑选采样：力度层优先，音高取最近根音；鼓组要求同键位 */
+  pickSample(pitch, velocity) {
+    const id = this.sampleBank;
+    if (!id || !this.owner) return null;
+    const bank = this.owner.banks.get(id);
+    if (!bank || !bank.samples.length) return null;
+    const drums = bank.kind === 'drums';
+    let best = null;
+    let bestDist = Infinity;
+    for (const s of bank.samples) {
+      if (velocity < s.velMin - 1e-6 || velocity > s.velMax + 1e-6) continue;
+      const dist = Math.abs(s.pitch - pitch);
+      if (drums) {
+        if (dist <= 1 && dist < bestDist) {
+          bestDist = dist;
+          best = s;
+        }
+      } else if (dist < bestDist) {
+        bestDist = dist;
+        best = s;
+      }
+    }
+    // 采样库覆盖不到这个音高时退回合成音源，避免整轨静音
+    if (!best || (!drums && bestDist > 15)) return null;
+    return best;
+  }
   noteOn(pitch, velocity, noteId, articulation, durFrames, seed, src, gen) {
     // 音高/力度非法时不发声：NaN 会被乐器算式放大成整轨永久静音
     if (!Number.isFinite(pitch)) return null;
@@ -1049,7 +1130,9 @@ class Track {
     const frames = Number.isFinite(durFrames) && durFrames > 0 ? durFrames : 0;
     const type = this.type;
     let v;
-    if (type === 'ep') v = new EpVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
+    const sample = this.pickSample(pitch, vel);
+    if (sample) v = new SampleVoice(this.sr, this, pitch, vel, noteId, articulation, seed, sample);
+    else if (type === 'ep') v = new EpVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
     else if (type === 'guitar') v = new GuitarVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
     else if (type === 'piano') v = new PianoVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
     else if (type === 'drum') v = new DrumVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
@@ -1177,7 +1260,9 @@ class StudioProcessor {
     this.sr = options.sampleRate || sampleRate;
     this.blockLen = 128;
     this.tracks = [];
-    for (let i = 0; i < MAX_TRACKS; i++) this.tracks.push(new Track(this.sr, i));
+    for (let i = 0; i < MAX_TRACKS; i++) this.tracks.push(new Track(this.sr, i, this));
+    /** 采样音源库：id → { kind, sampleRate, samples }，由主线程按需下发 */
+    this.banks = new Map();
     this.outBufL = new Float32Array(this.blockLen);
     this.outBufR = new Float32Array(this.blockLen);
     this.sendL = new Float32Array(this.blockLen);
@@ -1393,6 +1478,28 @@ class StudioProcessor {
         }
         break;
       }
+      case 'sbank': {
+        // 采样音源库：音频线程只存 Int16 数据，渲染时再换算成浮点
+        if (m.bankId && Array.isArray(m.samples) && m.samples.length) {
+          const rate = Math.max(1, finite(m.sampleRate, this.sr));
+          this.banks.set(m.bankId, {
+            kind: m.kind === 'drums' ? 'drums' : 'pitched',
+            sampleRate: rate,
+            samples: m.samples
+              .filter((s) => s && s.data && Number.isFinite(s.pitch))
+              .map((s) => ({
+                pitch: finite(s.pitch, 60),
+                velMin: clamp(finite(s.velMin, 0), 0, 1),
+                velMax: clamp(finite(s.velMax, 1), 0, 1),
+                sampleRate: rate,
+                data: s.data,
+                loopStart: Math.max(0, finite(s.loopStart, 0)) * rate,
+                loopEnd: Math.max(0, finite(s.loopEnd, 0)) * rate,
+              })),
+          });
+        }
+        break;
+      }
       case 'audio': {
         const frame = this.frameOf(m.when);
         this.events.push({
@@ -1481,6 +1588,9 @@ class StudioProcessor {
       tr.target = Object.assign({}, tr.p);
     } else if (m.params) {
       tr.setParams(m.params);
+    }
+    if (m.sampleBank !== undefined) {
+      tr.sampleBank = typeof m.sampleBank === 'string' && m.sampleBank ? m.sampleBank : null;
     }
     if (m.volume !== undefined) tr.volumeTarget = clamp(finite(m.volume, tr.volumeTarget), 0, 1);
     if (m.pan !== undefined) tr.panTarget = clamp(finite(m.pan, tr.panTarget), -1, 1);

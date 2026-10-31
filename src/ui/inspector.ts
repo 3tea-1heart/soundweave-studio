@@ -5,6 +5,7 @@ import { automationLabel } from '../core/automation';
 import { renderAutomationEditor } from './automation-editor';
 import { targetLabel, targetRange, type MidiLearnTarget } from '../core/midi-learn';
 import { assetById } from '../core/audio-asset';
+import { bankById } from '../core/sample-bank';
 import type { Preset, PresetMacro, Track, AutomationLane, Clip } from '../core/types';
 
 const TYPE_LABEL: Record<string, string> = {
@@ -50,7 +51,9 @@ export class Inspector {
     const preset = presetById(track.instrument.presetId);
     this.renderTrackHeader(track, preset);
     this.renderMacros(track, preset);
-    this.renderParams(track);
+    // 采样音源没有可调的合成参数，只保留轨道效果与自动化
+    if (preset?.sampleBank) this.renderSampleInfo(preset);
+    else this.renderParams(track);
     this.renderFx(track);
     this.renderMidi(track);
     this.renderAutomation(track);
@@ -304,6 +307,18 @@ export class Inspector {
     }
   }
 
+  /** 采样音源说明：合成参数对其无效，避免滑杆调了没反应 */
+  private renderSampleInfo(preset: Preset): void {
+    const sec = this.section('采样音源');
+    const hint = document.createElement('div');
+    hint.className = 'auto-hint';
+    const bank = preset.sampleBank ? bankById(preset.sampleBank) : undefined;
+    hint.textContent = bank
+      ? `真实录音：${bank.name} · ${bank.samples.length} 个采样（${bank.license}）。合成参数不作用于采样，用下方轨道效果调节音色与空间。`
+      : '真实录音采样。合成参数不作用于采样，用下方轨道效果调节音色与空间。';
+    sec.appendChild(hint);
+  }
+
   private renderFx(track: Track): void {
     const sec = this.section('轨道效果');
     for (const def of FX_DEFS) {
@@ -409,7 +424,9 @@ export class Inspector {
   private renderAutomationAdder(parent: HTMLElement, track: Track): void {
     const options: Array<{ id: string; label: string }> = [];
     const isAudio = track.kind === 'audio';
-    if (!isAudio) {
+    // 采样音源没有可调合成参数，只保留轨道效果自动化
+    const sampled = !!presetById(track.instrument.presetId)?.sampleBank;
+    if (!isAudio && !sampled) {
       for (const def of PARAM_DEFS[track.instrument.type] || []) {
         options.push({ id: `param:${def.key}`, label: def.label });
       }

@@ -1,7 +1,7 @@
 {
   "name": "soundweave-studio",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.7.2",
   "type": "module",
   "main": "electron/main.cjs",
   "description": "声织 SoundWeave - 轻量音色编曲工作站",

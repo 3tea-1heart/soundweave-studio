@@ -34,6 +34,8 @@ export interface InstrumentState {
   presetId: string;
   type: InstrumentType;
   params: Record<string, number>;
+  /** 采样音源库 id（存在时走采样发声，缺省走合成音源） */
+  sampleBank?: string;
 }
 
 export interface Track {
@@ -146,6 +148,8 @@ export interface Preset {
   fx?: PresetFx;
   /** 是否为用户保存的音色 */
   custom?: boolean;
+  /** 采样音源库 id：设置后该预设用真实采样发声（params 仍保留，供效果与宏使用） */
+  sampleBank?: string;
 }
 
 export interface MusicBlock {

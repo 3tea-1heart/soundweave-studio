@@ -2,6 +2,7 @@ node_modules/
 dist/
 release/
 work/
+assets/raw/
 .screenshots/
 .trae-html-share-packages/
 debug.log

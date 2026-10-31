@@ -47,6 +47,12 @@ const MACROS: Record<string, PresetMacro[]> = {
     M('motion', '运动', [{ param: 'lfoDepth', min: 0, max: 0.8 }, { fx: 'chorus', min: 0, max: 0.8 }]),
     M('space', '空间', [{ fx: 'sendReverb', min: 0.1, max: 0.85 }]),
   ],
+  /** 采样音源：采样本身已含力度与音色，宏只作用于轨道级效果 */
+  sampled: [
+    M('tone', '音色', [{ fx: 'tone', min: 0.62, max: 1.0 }]),
+    M('space', '空间', [{ fx: 'sendReverb', min: 0.02, max: 0.55 }]),
+    M('grit', '颗粒', [{ fx: 'drive', min: 0, max: 0.3 }, { fx: 'chorus', min: 0, max: 0.3 }]),
+  ],
 };
 
 function p(
@@ -59,8 +65,9 @@ function p(
   description: string,
   tags: string[],
   usage?: string,
+  sampleBank?: string,
 ): Preset {
-  return { id, name, category, type, params, macros: MACROS[macroKey], description, tags, usage };
+  return { id, name, category, type, params, macros: MACROS[macroKey], description, tags, usage, sampleBank };
 }
 
 export const PRESETS: Preset[] = [
@@ -207,6 +214,16 @@ export const PRESETS: Preset[] = [
     '瞬态极强、偏硬的鼓组。', ['硬核', '瞬态'], 'GM 鼓映射'),
   p('drum-exp', '实验鼓', '鼓组', 'drum', { punch: 0.55, decay: 0.75, toneShift: 0.78, drive: 0.42 }, 'drum',
     '偏高频、带失真的实验鼓组。', ['实验', '失真'], 'GM 鼓映射'),
+
+  // ---- 采样音源（真实乐器录音，v0.7.2）----
+  p('piano-upright-kw', '立式钢琴 KW（采样）', '钢琴/贝斯', 'piano', {}, 'sampled',
+    'Kawai 立式钢琴实录，强弱两层 + 延音循环，比合成钢琴自然。', ['采样', '真实', '钢琴'], 'C2–C7', 'piano-kw'),
+  p('guitar-steel-fss', '钢弦民谣吉他（采样）', '吉他', 'guitar', {}, 'sampled',
+    '钢弦民谣吉他的真实录音，含中/强两层力度，适合扫弦与分解。', ['采样', '真实', '吉他'], 'E2–E5', 'guitar-fss'),
+  p('bass-finger-yr', '指弹电贝斯（采样）', '钢琴/贝斯', 'bass', {}, 'sampled',
+    'Yamaha RBX 指弹音色，逐半音采样，低频扎实。', ['采样', '真实', '贝斯'], 'D1–D4', 'bass-yr'),
+  p('drum-muldjord', '原声鼓组 Muldjord（采样）', '鼓组', 'drum', {}, 'sampled',
+    '真实原声套鼓录音；底鼓、军鼓、踩镲、通鼓、镲片为采样，拍手/沙锤仍为合成。', ['采样', '真实', '鼓组'], 'GM 鼓映射', 'drums-muldjord'),
 ];
 
 export const PRESET_CATEGORIES = ['电钢琴', '吉他', '钢琴/贝斯', '合成贝斯', '主音/拨弦', '铺底/纹理', '实验/音效', '鼓组', '我的音色'];
@@ -226,8 +243,9 @@ export function presetById(id: string): Preset | undefined {
 }
 
 export function defaultPresetForType(type: InstrumentType): Preset {
-  const found = PRESETS.find((x) => x.type === type);
-  return found || PRESETS[0];
+  // 有真实采样时优先用采样音源，避免新工程默认就是合成音色
+  const sampled = PRESETS.find((x) => x.type === type && x.sampleBank);
+  return sampled || PRESETS.find((x) => x.type === type) || PRESETS[0];
 }
 
 /**

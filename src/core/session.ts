@@ -201,6 +201,7 @@ export function trackMessage(track: Track, index: number, overrides: Record<stri
     track: index,
     instrumentType: track.instrument.type,
     params: { ...track.instrument.params },
+    sampleBank: track.instrument.sampleBank || null,
     volume: track.volume,
     pan: track.pan,
     mute: track.mute,

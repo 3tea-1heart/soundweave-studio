@@ -845,9 +845,87 @@ PASS  WAV 头合法（RIFF/WAVE · 48 kHz · 16-bit · 时长 > 0） — 2ch 480
 
 ---
 
-## 12. 未执行 / 不能声称的验证
+## 12. v0.7.2 真实采样音源
+
+### 12.1 素材构建
+
+```powershell
+# 原始包解压到 assets/raw/extracted/ 后（下载地址见 docs/samples.md）
+uv run --with soundfile --with numpy --with scipy python tools/sample-build.py
+```
+
+```text
+piano-kw: 63 samples, 30.1 MB
+guitar-fss: 59 samples, 20.0 MB
+bass-yr: 12 samples, 4.3 MB
+drums-muldjord: 21 samples, 1.5 MB
+manifest -> src/samples/manifest.json；采样总量 55.9 MB
+```
+
+原始包：FreePats Upright Piano KW（72 MB 7z）、FSS Steel-String Guitar（13 MB tar.xz）、FingerBass YR（5.3 MB 7z）、MuldjordKit（165 MB 7z FLAC）。授权逐项见 [samples.md](samples.md)。
+
+### 12.2 采样音源回归（Node，无浏览器）
+
+```powershell
+node tools/sample-tests.mjs
+```
+
+```text
+总计 27 项，通过 27 项，失败 0 项
+```
+
+关键结果：
+
+- 根音演奏与原始采样波形相关系数 **0.999**（`rate=1.059`，即最近采样根音相差 1 个半音，采样插值正确）；
+- 音高越高过零率越高：`0.0284 vs 0.0237`（变调方向正确）；
+- 钢琴循环：长音 3.2 秒后尾段峰值仍为 **0.043**（循环生效）；
+- 贝斯无循环：5.07 秒后峰值 **0.000**（自然收尾，不是无限循环）；
+- 鼓组：底鼓走采样且 `piece='kick'`（保留踩镲互斥）；无采样的 `clap`（键位 49）回退 `DrumVoice`；
+- 采样库缺失 / 音高 2（超出钢琴覆盖）均回退合成音源并出声（peak 0.489 / 0.247），不静音；
+- 离线路径：用 `buildSessionPlan` 生成与 `renderOffline` 相同的消息序列，轨道拿到 `sampleBank`、声部为 `SampleVoice`、输出 peak **0.397**、无 NaN。
+
+采样体积：钢琴 30 MB + 吉他 20 MB + 贝斯 4 MB + 鼓 2 MB = **55.9 MB**（断言 < 80 MB）。
+
+### 12.3 浏览器实测（开发服务器 127.0.0.1:5173）
+
+- 默认工程 3 轨：调音台显示「钢琴 / 贝斯 / 鼓机」；
+- 引擎信息「48 kHz · 运行中 · AudioWorklet」；
+- 网络请求 `samples/piano-kw/*.wav` 返回 200；
+- 控制台无报错；
+- 插入 1 个编曲块到钢琴轨后导出 WAV：状态栏「已导出 WAV：11.20 秒 · 48000 Hz · 16-bit」。
+
+### 12.4 EXE 打包与自检
+
+`node electron/package.mjs` 重新打包（packager 仍因 EPERM 回退手工拼装）。`resources/app.asar` 由 0.25 MB 增至 **56.3 MB**（含 `dist/samples`）。
+
+`npm run exe:smoke`（新增第 9 项「采样音源随包可读取」）：
+
+```text
+PASS  EXE 正常退出 — exit=0
+PASS  页面已加载（时间轴信息） — 3 轨 · 0 片段 · 100 BPM
+PASS  音频引擎运行 — 48 kHz · 运行中 · AudioWorklet
+PASS  播放推进 — position=1.3
+PASS  导出成功提示 — 已导出 WAV：4.00 秒 · 48000 Hz · 16-bit
+PASS  控制台无警告/错误
+PASS  采样音源随包可读取 — 726736 字节
+PASS  生成了 WAV 文件 — 未命名工程.wav
+PASS  WAV 头合法（RIFF/WAVE · 48 kHz · 16-bit · 时长 > 0） — 2ch 48000Hz 16bit 4.00s
+```
+
+### 12.5 构建与全量回归
+
+`npm run build` 通过：`index.html` 9.70 kB、CSS 27.17 kB、JS 316.43 kB（gzip 95.60 kB）、54 modules；`dist/samples` 55.9 MB 随构建复制。
+
+全量脚本（21 个工具脚本）全部 `exit=0`；`preset-tests` 41/41（预设总数断言更新为 68，其中合并自定义音色后 69）、`sound-tests` 34/34（68 个预设均可发声、无削波）、`render-test` 音准 440.0 Hz / 偏差 -0.0 cents。
+
+**未验收**：四个采样音源的实际听感（循环接缝、吉他低音、贝斯电平、鼓组与合成 clap/shaker 的衔接）需要人耳确认，见 progress.md §4。
+
+---
+
+## 13. 未执行 / 不能声称的验证
 
 - 未逐个人耳试听 64 个预设与 3 首示例工程；音质、乐器自然度、混音平衡**未验收**。v0.2.1 的新鼓组、钢琴非谐泛音、EP 双调制、吉他环路阻尼与总线混响尤其需要人耳判断。
+- v0.7.2 的四个采样音源只做了数值与波形一致性验证，**未验收听感**：钢琴延音循环是否可闻接缝、吉他低音区是否发闷、贝斯/鼓组电平是否与合成轨平衡、采样与合成是否真的不再同质化，都需要人耳确认。
 - 未对调音台竖向推子、PAN/REV 小滑杆、M/S、电平表做自动化拖动交互验证。
 - 未通过像素截图验证 v0.2.1 新视觉（截图工具不可用，仅有布局矩形与可访问性快照）。
 - v0.3.0 的预设试听与 A/B 对比只验证了**状态栏提示、预设切换与引擎运行状态**；实际听到的两段音频差异（A/B 是否真的不同、试听是否覆盖完整起音）未做音频采集比对，需人工试听。

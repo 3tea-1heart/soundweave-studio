@@ -4,6 +4,7 @@ import { decodeAssetPcm } from './audio-asset';
 import { beatsToSeconds } from './tempo';
 import { buildSessionPlan, PREVIEW_TRACK_INDEX as PREVIEW_TRACK, trackMessage } from './session';
 import { presetTrackFx } from './presets';
+import { fetchBank, bankById, type LoadedBank } from './sample-bank';
 
 const WORKLET_NAME = 'soundweave-studio';
 
@@ -36,6 +37,11 @@ export class AudioEngine {
   sampleRate = 48000;
   private previewGen = 0;
   private nodeBroken = false;
+  /** 采样音源库缓存（按 id），主线程只保留 Int16 PCM */
+  private bankCache = new Map<string, LoadedBank>();
+  private loadingBanks = new Map<string, Promise<boolean>>();
+  /** 已下发到当前 AudioWorklet 节点的库 id，节点重建后需要重新下发 */
+  private banksInNode = new Set<string>();
 
   async ensure(): Promise<AudioContext> {
     if (this.ctx) {
@@ -87,6 +93,70 @@ export class AudioEngine {
     this.node = node;
     this.nodeBroken = false;
     this.ready = true;
+    // 节点重建后把已加载的采样库补发给新节点，否则采样轨会退回合成音源
+    this.banksInNode.clear();
+    for (const bank of this.bankCache.values()) this.postBank(node, bank);
+  }
+
+  /** 采样音源：把库数据下发到指定节点（Int16 PCM 直接结构化克隆） */
+  private postBank(node: AudioNode, bank: LoadedBank): void {
+    (node as AudioWorkletNode).port.postMessage({
+      type: 'sbank',
+      bankId: bank.id,
+      kind: bank.kind,
+      sampleRate: bank.sampleRate,
+      samples: bank.samples.map((s) => ({
+        pitch: s.pitch,
+        velMin: s.velMin,
+        velMax: s.velMax,
+        loopStart: s.loopStart,
+        loopEnd: s.loopEnd,
+        data: s.data,
+      })),
+    });
+  }
+
+  /** 加载采样库（幂等）；返回 false 表示清单不存在或加载失败，调用方应回退合成音源 */
+  async ensureBank(bankId: string | null | undefined): Promise<boolean> {
+    if (!bankId) return false;
+    const def = bankById(bankId);
+    if (!def) return false;
+    if (this.bankCache.has(bankId)) {
+      const bank = this.bankCache.get(bankId)!;
+      if (this.node && !this.banksInNode.has(bankId)) {
+        this.postBank(this.node, bank);
+        this.banksInNode.add(bankId);
+      }
+      return true;
+    }
+    const pending = this.loadingBanks.get(bankId);
+    if (pending) return pending;
+    const task = (async () => {
+      try {
+        const bank = await fetchBank(def);
+        this.bankCache.set(bankId, bank);
+        if (this.node) {
+          this.postBank(this.node, bank);
+          this.banksInNode.add(bankId);
+        }
+        return true;
+      } catch {
+        return false;
+      } finally {
+        this.loadingBanks.delete(bankId);
+      }
+    })();
+    this.loadingBanks.set(bankId, task);
+    return task;
+  }
+
+  /** 预加载工程里用到的全部采样库（播放前调用，失败时静默回退合成音源） */
+  async preloadBanks(project: Project): Promise<void> {
+    const ids = new Set<string>();
+    for (const t of project.tracks.slice(0, 15)) {
+      if (t.instrument.sampleBank) ids.add(t.instrument.sampleBank);
+    }
+    await Promise.all([...ids].map((id) => this.ensureBank(id)));
   }
 
   post(msg: Record<string, unknown>): void {
@@ -216,12 +286,14 @@ export class AudioEngine {
     params: Record<string, number>,
     volume = 0.85,
     fx: { drive?: number; chorus?: number } = {},
+    sampleBank?: string,
   ): void {
     this.post({
       type: 'track',
       track: PREVIEW_TRACK,
       instrumentType,
       params,
+      sampleBank: sampleBank || null,
       volume,
       pan: 0,
       mute: false,
@@ -252,9 +324,11 @@ export class AudioEngine {
     params: Record<string, number>,
     art = 'normal',
     fx?: { drive?: number; chorus?: number },
+    sampleBank?: string,
   ): Promise<void> {
     await this.ensure();
-    this.setPreview(instrumentType, params, 0.85, fx ?? presetTrackFx(instrumentType, params));
+    if (sampleBank) await this.ensureBank(sampleBank);
+    this.setPreview(instrumentType, params, 0.85, fx ?? presetTrackFx(instrumentType, params), sampleBank);
     this.previewGen++;
     this.resetSource('preview', this.previewGen);
     const origin = (this.ctx?.currentTime || 0) + 0.06;
@@ -292,6 +366,17 @@ export class AudioEngine {
       outputChannelCount: [2],
     });
     node.connect(ctx.destination);
+
+    // 采样音源：离线渲染用同一套采样库；缺库时对应轨道自动退回合成音源
+    const bankIds = new Set<string>();
+    for (const t of project.tracks.slice(0, 15)) {
+      if (t.instrument.sampleBank) bankIds.add(t.instrument.sampleBank);
+    }
+    for (const id of bankIds) {
+      const ok = await this.ensureBank(id);
+      const bank = this.bankCache.get(id);
+      if (ok && bank) this.postBank(node, bank);
+    }
 
     const post = (msg: Record<string, unknown>) => node.port.postMessage(msg);
     // 素材先于事件下发；缺失 PCM 的素材不注册，对应片段将被静默跳过

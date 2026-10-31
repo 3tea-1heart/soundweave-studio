@@ -58,7 +58,12 @@ function normalizeProject(p: Project): Project {
     }
     const preset = presetById(t.instrument.presetId);
     if (!preset || preset.type !== t.instrument.type) {
-      t.instrument.presetId = defaultPresetForType(t.instrument.type).id;
+      const fallback = defaultPresetForType(t.instrument.type);
+      t.instrument.presetId = fallback.id;
+      t.instrument.sampleBank = fallback.sampleBank;
+    } else {
+      // 采样库由预设决定：预设被删除或改名时自动退回合成音源
+      t.instrument.sampleBank = preset.sampleBank;
     }
     t.instrument.params = mergeParams(t.instrument.type, t.instrument.params);
     t.automation = t.automation || [];
@@ -449,7 +454,9 @@ class App implements AppUi {
       presetId: preset.id,
       type: preset.type,
       params: mergeParams(preset.type, preset.params),
+      sampleBank: preset.sampleBank,
     };
+    if (preset.sampleBank) void engine.ensureBank(preset.sampleBank);
     // 预设里的合唱/过载属于轨道级效果，应用时必须同步，否则音色描述与实际听感不符
     if (preset.fx) {
       // 自定义音色保存了完整效果快照（音量/声像/发送/低通/过载/合唱）
@@ -488,6 +495,7 @@ class App implements AppUi {
           mergeParams(preset.type, preset.params),
           'normal',
           this.presetAuditionFx(preset),
+          preset.sampleBank,
         );
         this.notify(`试听「${preset.name}」 · ${preset.description}`);
       } catch (err) {
@@ -521,12 +529,12 @@ class App implements AppUi {
         );
         this.notify(`A/B 对比：A「${preset.name}」`);
         await engine.previewNotes(
-          notesA, 96, preset.type, mergeParams(preset.type, preset.params), 'normal', this.presetAuditionFx(preset),
+          notesA, 96, preset.type, mergeParams(preset.type, preset.params), 'normal', this.presetAuditionFx(preset), preset.sampleBank,
         );
         await new Promise((resolve) => window.setTimeout(resolve, (beatsToSeconds(beats, 96) + 0.7) * 1000));
         this.notify(`A/B 对比：B 当前「${current.name}」`);
         await engine.previewNotes(
-          notesB, 96, current.type, mergeParams(current.type, current.params), 'normal', this.presetAuditionFx(current),
+          notesB, 96, current.type, mergeParams(current.type, current.params), 'normal', this.presetAuditionFx(current), current.sampleBank,
         );
       } catch (err) {
         this.notify(`音频引擎启动失败：${String(err)}`, 'error');
@@ -563,6 +571,7 @@ class App implements AppUi {
       usage: base.usage,
       fx,
       custom: true,
+      sampleBank: base.sampleBank,
     };
     addUserPreset(preset);
     // 保存后让当前轨道引用新音色，检查器与浏览器马上能看到它是“当前音色”
@@ -709,6 +718,8 @@ class App implements AppUi {
     if (!engine.ready) return;
     this.syncAssets();
     engine.syncProject(this.project);
+    // 采样库按需加载；加载完成前对应轨道用合成音源，不会静音
+    void engine.preloadBanks(this.project);
     for (let i = this.project.tracks.length; i < MAX_TRACKS; i++) {
       engine.post({ type: 'track', track: i, mute: true });
     }

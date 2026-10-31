@@ -127,10 +127,19 @@ function runSmoke(win, outPath) {
             await new Promise((r) => setTimeout(r, 800));
             statusHistory.push(q('status'));
           }
+          // 采样音源随包：能取到钢琴采样说明 dist/samples 已打进 asar
+          let sampleBytes = 0;
+          try {
+            const res = await fetch('samples/piano-kw/A0vL.wav');
+            if (res.ok) sampleBytes = (await res.arrayBuffer()).byteLength;
+          } catch {
+            sampleBytes = 0;
+          }
           return {
             status: q('status'),
             beforeExport,
             statusHistory,
+            sampleBytes,
             info: q('timeline-info'),
             engine: q('engine-info'),
             position: q('position'),
