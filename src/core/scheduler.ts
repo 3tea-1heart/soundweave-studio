@@ -237,6 +237,8 @@ export class Scheduler {
     if (!this.playing) return;
     const ctx = this.engine.ctx;
     if (!ctx) return;
+    // 系统休眠/音频设备切换后上下文可能被浏览器挂起，表现为界面在播但没有声音
+    if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
     const project = this.getProject();
     const spb = this.spb(project);
     const useLoop = this.loopActive(project);

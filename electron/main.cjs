@@ -13,6 +13,9 @@ const SMOKE_OUT = (() => {
 // 自检时用固定目录代替「另存为」对话框，便于无人值守验证导出链路
 const SMOKE_SAVE_DIR = process.env.SOUNDWEAVE_SMOKE_SAVE || '';
 
+// 自检使用独立 userData：否则会恢复用户真实工程的自动保存，导出耗时与状态栏都不可控
+if (SMOKE_OUT) app.setPath('userData', path.join(path.dirname(SMOKE_OUT), 'userdata'));
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -74,7 +77,8 @@ function createWindow() {
     },
   });
 
-  win.once('ready-to-show', () => win.show());
+  // 自检时不开窗口：窗口一旦可见，桌面上的真实鼠标操作会打断无人值守流程
+  if (!SMOKE_OUT) win.once('ready-to-show', () => win.show());
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/i.test(url)) void shell.openExternal(url);
     return { action: 'deny' };

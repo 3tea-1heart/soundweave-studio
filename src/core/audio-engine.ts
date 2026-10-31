@@ -31,22 +31,43 @@ export class AudioEngine {
   node: AudioWorkletNode | null = null;
   ready = false;
   onLevels: ((peak: number, tracks: number[]) => void) | null = null;
+  /** Worklet 自愈后的回调：主线程据此提示并重新下发工程状态 */
+  onWorkletError: ((message: string) => void) | null = null;
   sampleRate = 48000;
   private previewGen = 0;
+  private nodeBroken = false;
 
   async ensure(): Promise<AudioContext> {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      if (this.ctx.state === 'suspended') await this.ctx.resume().catch(() => {});
+      // 节点曾因处理器异常被停用时重建，否则之后所有消息都发进了一个死节点
+      if (this.nodeBroken) await this.mountNode(this.ctx);
       return this.ctx;
     }
     const ctx = new AudioContext({ latencyHint: 'interactive' });
     this.ctx = ctx;
     this.sampleRate = ctx.sampleRate;
+    // 系统休眠、锁屏或音频设备切换会把上下文挂起：自动恢复，避免“界面在播却没声音”
+    ctx.addEventListener('statechange', () => {
+      if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+    });
     const url = workletUrl();
     try {
       await ctx.audioWorklet.addModule(url);
     } finally {
       URL.revokeObjectURL(url);
+    }
+    await this.mountNode(ctx);
+    return ctx;
+  }
+
+  private async mountNode(ctx: AudioContext): Promise<void> {
+    if (this.node) {
+      try {
+        this.node.disconnect();
+      } catch {
+        /* 节点已失效，忽略 */
+      }
     }
     const node = new AudioWorkletNode(ctx, WORKLET_NAME, {
       numberOfInputs: 0,
@@ -56,11 +77,16 @@ export class AudioEngine {
     node.port.onmessage = (e) => {
       const d = e.data;
       if (d && d.type === 'levels' && this.onLevels) this.onLevels(d.peak, d.tracks);
+      else if (d && d.type === 'error') this.onWorkletError?.(String(d.message || '音频处理器异常'));
+    };
+    node.onprocessorerror = () => {
+      this.nodeBroken = true;
+      this.onWorkletError?.('音频节点已停止，将在下次播放前重建');
     };
     node.connect(ctx.destination);
     this.node = node;
+    this.nodeBroken = false;
     this.ready = true;
-    return ctx;
   }
 
   post(msg: Record<string, unknown>): void {

@@ -1,6 +1,6 @@
-# 开发进度（SoundWeave 声织 v0.7.0）
+# 开发进度（SoundWeave 声织 v0.7.1）
 
-最后更新：2026-11-01（v0.7.0：回溯录制、五线谱只读视图、辅助和弦建议）
+最后更新：2026-11-01（v0.7.1：音频长会话自愈 + EXE 重打包 + 自检确定性）
 交付形态：**可运行的 Web 应用 + Windows x64 免安装 EXE**（`dist/` 与 `release/SoundWeave-win32-x64/`）
 当前状态：Web 与 EXE 均可运行；播放/导出/编排编辑/音频导入/新三项功能均有自动化回归；EXE 有 8 项自动化自检；音色仍需人耳验收
 
@@ -27,6 +27,7 @@ node tools/audio-track-tests.mjs  # 音频轨 DSP / 重采样（21 项）
 node tools/retro-tests.mjs        # 回溯录制缓冲与写回（9 项）
 node tools/notation-tests.mjs     # 五线谱记谱换算（9 项）
 node tools/scales-tests.mjs       # 音阶、和弦拼写与和弦建议（18 项）
+node tools/audio-recovery-tests.mjs  # 音频长会话自愈：坏时间戳/NaN 污染/异常恢复（19 项）
 ```
 
 环境实测：Windows，Node 24 / npm 11，Chrome（浏览器实测均在此环境完成）。
@@ -123,7 +124,7 @@ node tools/scales-tests.mjs       # 音阶、和弦拼写与和弦建议（18 �
 - 权限：`setPermissionRequestHandler` / `setPermissionCheckHandler` 仅放行 MIDI（`midi`、`midiSysex`），其余全部拒绝。
 - 下载：`will-download` 拦截所有导出（WAV / 工程 / MIDI / 分轨），弹系统「另存为」，默认目录为「文档」；用户取消则取消下载。
 - `electron/package.mjs`：`@electron/packager` 打包 win32-x64，只收 `dist/`、`electron/` 与 `package.json`（asar 打包，不含 src / tools / docs / node_modules），产物 `release/SoundWeave-win32-x64/`；temp 目录放在项目同盘（跨盘 rename 会 EPERM）；若 packager 的目录 rename 仍被系统拒绝，则回退到「本地 `node_modules/electron/dist` + `@electron/asar` 手工拼装」，产物结构一致（此时 EXE 无自定义版本信息）。
-- 自检模式：EXE 带 `--smoke-out <file>` 启动后自动点击播放 1.8 s、停止、点击「导出 WAV」，再采样状态栏 10 次、记录控制台日志并写 JSON 后退出；`electron/smoke.mjs` 启动该 EXE 并校验 8 项。
+- 自检模式：EXE 带 `--smoke-out <file>` 启动后自动点击播放 1.8 s、停止、点击「导出 WAV」，再采样状态栏 10 次、记录控制台日志并写 JSON 后退出；`electron/smoke.mjs` 启动该 EXE 并校验 8 项。自检时使用独立 `userData` 目录（`<smoke-out 同目录>/userdata`）且不显示窗口，避免恢复用户真实工程的自动保存、或被桌面上的真实鼠标操作打断（v0.7.1）。
 - `index.html` 增加 CSP meta（`script-src 'self' blob:`、`worker-src 'self' blob:`），消除 Electron 的 Insecure-CSP 警告且不影响 AudioWorklet。
 - 版本 0.6.0；`package.json` 的 `main` 指向 `electron/main.cjs`，新增脚本 `exe` / `exe:smoke`，新增 devDependencies `electron@^45.2.1`、`@electron/packager@^20.3.0`。
 
@@ -152,6 +153,22 @@ node tools/scales-tests.mjs       # 音阶、和弦拼写与和弦建议（18 �
 - 根音拼写 `spellScaleRoot()` 不按 pitch class 直接取升号名，而是**按级数字母序**（`B♭` 而不是 `A♯`、`E♭` 而不是 `D♯`），保证 `IV Fmaj7`、`V B♭7` 这类拼写正确。
 - 实时高亮 `suggestChord(chords, activePc)`：统计每个候选和弦音命中集合的大小，取最高分（平手取低级别）；`activePc` 取播放头所在片段内起点落在 `[播放头, 播放头+1 拍)` 的音符音高（含片段移调）。
 - 试听 `auditionChord()`：以 C4 为基准按半音间隔逐音触发 `engine.note()`，走 `src: 'live'` 事件来源，不污染工程数据。
+
+### 2.9 音频长会话自愈（v0.7.1）
+
+排查「用一段时间后界面显示在播，但实际没有声音」时复现到三类**会导致永久静音**的确定性缺陷，全部在 `src/audio/studio-processor.js` 内修复：
+
+1. **坏时间戳堵死事件队列**：`when` 为 `NaN` 的事件排到队首后，`events[0].frame <= blockEnd` 恒为 false，队列再也不消化，之后所有音符都不发声。现在 `frameOf()` 把非法时间戳退回当前帧，出队循环对非有限 `frame` 直接丢弃，并加上 8192 条的上限与「单块最多处理 8192 条」的护栏。
+2. **NaN 力度污染长反馈链路**：NaN 样本进入轨道低通状态（`lpL`）与总线 `DCBlock` / `DelayFx` 状态后，这些状态**永远**保持 NaN，整曲静音。现在逐样本兜底（`if (!isFinite(mono)) mono = 0` 等）、参数经 `sanitizeParams()` 只收有限数值、`noteOn` 校验 pitch/力度/时长。
+3. **参数写入 NaN 目标值**：`params: { cutoff: NaN, resonance: undefined }` 写入平滑目标后参数永久 NaN。现在 `Track.setParams()` 与非有限参数全部过滤。
+
+另外补了两类「节点失效」的自愈：
+
+- 每个音频块结束检查总线关键状态（音量、隔直、混响、延迟输出），一旦出现非有限值就 `resetMasterState()` 重建混响/延迟/隔直状态并计数（`recoveries`）。
+- `AudioWorkletProcessor.process()` 包一层 try/catch：处理器抛异常时先把输出清零、再 `recover()`（清空事件与声部、参数回默认），并按 1 秒限频通过 `port.postMessage({ type: 'error' })` 上报，音频线程继续运行。
+- 主线程 `AudioEngine`（`src/core/audio-engine.ts`）监听该错误与 `processorerror`：`nodeBroken` 时在下次 `ensure()` 重建 Worklet 节点；`ctx` 被系统休眠/设备切走挂起时自动 `resume()`（`statechange` 事件与调度器 tick 各兜一层）。`src/main.ts` 收到错误后提示「音频引擎已自动恢复」并重新下发工程状态。
+
+`tools/audio-recovery-tests.mjs` 用 19 项回归覆盖上述路径（见 §3）。
 
 ---
 
@@ -192,6 +209,9 @@ node tools/scales-tests.mjs       # 音阶、和弦拼写与和弦建议（18 �
 | 回溯录制逻辑（v0.7.0） | `node tools/retro-tests.mjs` | **9/9 通过**；缓冲追加与滚动上限、超短音符时长钳到 1/16、绝对拍→片段内相对拍换算、起始拍吸附、1/16 时长取整、越界丢弃、尾部裁剪、移调片段偏移 |
 | 五线谱记谱换算（v0.7.0） | `node tools/notation-tests.mjs` | **9/9 通过**；中央 C 与边界音高拼写、黑白键升降号、八度回绕、谱表 step 单调性与五线位置、重升重降标记、音名文本格式 |
 | 音阶与和弦建议（v0.7.0） | `node tools/scales-tests.mjs` | **18/18 通过**；7 音阶音程合法性、各级三/七和弦音集合、和弦性质后缀（maj7/m7/7/m7♭5/dim7/m(maj7)）、罗马级数大小写与 `°`、按级数字母序的升降根音拼写（B♭/E♭）、`suggestChord` 命中数评分与平手取低级别、空候选与空输入 |
+| 音频长会话自愈（v0.7.1） | `node tools/audio-recovery-tests.mjs` | **19/19 通过**；`when=NaN` 事件不堵队列、NaN 力度不污染 `lpL`/`dcL`/`delay`、NaN 参数被丢弃且后续合法参数仍生效、总线 NaN 自动重建、`recover()` 清空事件与声部、事件队列上限 8192、Worklet 抛异常后仍继续发声、20 秒长会话输出稳定。修复前三类缺陷都能让输出 `peak=0` 永久静默 |
+| EXE 重打包与新功能入包（v0.7.1） | `node electron/package.mjs` + 解包 asar 检索 | 新 asar 内 `index.html` 9,700 字节、`index-DRKtrkAM.js` 288,158 字节；「五线谱 / 回溯 / 和弦建议 / 氛围 / ambient」在 `index.html` 命中 6 处、在 JS 命中 41 处，且 JS 内含「稀疏雾霭」预设，证明 EXE 已带上 ambient 子系统与五线谱等功能（旧 asar 同关键词 0 命中） |
+| EXE 自检复现（v0.7.1） | `npm run exe:smoke` | **8/8 通过**；`3 轨 · 0 片段 · 100 BPM`、`position=1.3`、`已导出 WAV：4.00 秒 · 48000 Hz · 16-bit`、控制台 0 条日志、`未命名工程.wav`（768,044 字节）。自检改为独立 `userData` + 隐藏窗口后从偶发失败变为确定性通过（原因见 §5 第 18 条） |
 | 音频片段离线渲染（v0.5.0） | `npm run render-test` | `p4-wav-音频片段` 2.40 s、峰值 0.407、RMS 0.1789、无 NaN/超 1；播放段 rms 0.293，片段起点前与终点后均为 0.000；44.1 kHz 素材重采样后 440 Hz 实测偏差 -0.0 cents |
 | WAV 导入浏览器实测（v0.5.0） | 浏览器（开发服务器 5173） | 通过隐藏文件输入上传 `p4-wav-clip.wav`（2.40 s / 48 kHz）→ 调音台新增「音频 1」轨、时间轴变 4 轨 2 片段、状态栏「已导入音频「p4-wav-clip.wav」 · 2.40 秒」；检查器出现「音频素材」（2.40 秒 · 48000 Hz · 立体声）与「音频片段」（起点 4.00 拍 · 长度 4.00 拍、增益/素材起点）；播放位置 1.1→2.1、停止回「已停止」；导出 WAV「6.40 秒 · 48000 Hz · 16-bit」；控制台无错误 |
 | 自动保存→刷新→重导入（v0.5.0） | 浏览器（开发服务器 5173） | 刷新后状态「已恢复自动保存；1 个音频素材缺少 PCM，请重新导入对应 WAV 后播放」，`clips.length` 6；再次导入同一 WAV 后状态「已恢复音频素材「p4-wav-clip.wav」 · 2.40 秒」，`clips.length` 仍为 6（不新增片段），检查器无「缺少 PCM」，控制台无错误。修复前该路径会因连派两次 `change` 多摆一个片段，现由串行化 + 同素材 2 秒去重守卫拦截 |
@@ -239,6 +259,8 @@ node tools/scales-tests.mjs       # 音阶、和弦拼写与和弦建议（18 �
 15. **五线谱是只读视图（v0.7.0）**：无调号、拍号、符尾分组、连音与 MusicXML；不能在五线谱中编辑音符；只按高音谱表绘制（低音区按加线延伸，没有低音谱表切换）；默认升号拼写，不按调性选择等音写法。鼓轨与音频轨没有该视图。
 16. **和弦建议只覆盖自然和弦（v0.7.0）**：不含次属和弦、转位、离调与替代进行；和声小调按自然七和弦拼写；调性与音阶只存在内存中，不随工程保存，刷新后回到 C 大调。
 17. **新三项功能的浏览器交互未做自动化实测（v0.7.0）**：「回溯」按钮、卷帘/五线谱切换按钮、和弦芯片点击与实时高亮只做了构建、类型检查与 36 项纯函数回归；本次环境无法对 canvas 与顶栏按钮做端到端点击采集，需人工点一遍确认（和弦条的网格行高已在 v0.7.0 修正为 38 px，修复了插入和弦条后编辑区行高错位）。
+18. **无声问题按「可复现的确定性缺陷」修复，未做真实长会话听感验收（v0.7.1）**：三类静音诱因（坏时间戳堵队列、NaN 污染长反馈状态、NaN 参数目标值）已在 Node 侧复现并回归；Worklet 异常重建与 AudioContext 挂起恢复只验证了「节点仍能发声 / 上下文恢复」，未在真实机器上跑数小时并经历休眠、切换音频设备、拔插耳机的完整听感验证。若仍出现「显示在播但无声」，先看状态栏是否出现「音频引擎已自动恢复」提示。
+19. **自检模式的确定性依赖（v0.7.1）**：`npm run exe:smoke` 使用独立 `userData` 且不显示窗口；若改成可见窗口，桌面上的真实鼠标/键盘操作会打断自动流程（曾导致状态栏被「生成工程」「移动片段」覆盖、导出采样超时）。
 
 ---
 

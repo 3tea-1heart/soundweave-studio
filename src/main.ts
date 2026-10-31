@@ -151,6 +151,11 @@ class App implements AppUi {
     engine.onLevels = (_peak, tracks) => {
       this.mixer?.setLevels(tracks);
     };
+    // 音频线程异常/节点被停用后自行恢复：提示用户并重新下发工程状态
+    engine.onWorkletError = (message) => {
+      this.notify(`音频引擎已自动恢复：${message}`, 'warn');
+      engine.syncProject(this.project);
+    };
 
     this.timeline = new Timeline($<HTMLCanvasElement>('timeline-canvas'), this);
     this.pianoroll = new PianoRoll($<HTMLCanvasElement>('pianoroll-canvas'), this);

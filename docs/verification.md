@@ -771,7 +771,81 @@ dist/assets/index-*.js         279.60 kB │ gzip: 86.73 kB
 
 ---
 
-## 11. 未执行 / 不能声称的验证
+## 11. v0.7.1 音频长会话自愈 / EXE 重打包
+
+### 11.1 缺陷复现（修复前）
+
+用 `work/nan-probe.mjs`（临时探针，未入库）向 `src/audio/studio-processor.js` 直接喂事件，三条路径在修复前都让输出 **永久静默**（后续合法音符 `peak = 0`）：
+
+| 注入 | 修复前观察值 | 修复后 |
+| --- | --- | --- |
+| `when: NaN` 的事件排在队首 | 事件队列不再消化（队列长度恒为 2），之后所有音符静音 | 该事件被丢弃，队列继续消化，后续音符 `peak = 0.62` |
+| NaN 力度声部 | `track.lpL = NaN`、总线 `dcL = NaN`、`delay.lpL = NaN`，整曲永久静音 | 逐样本兜底，状态均为有限值，`peak = 0.61` |
+| `params: { cutoff: NaN, resonance: undefined }` | 平滑目标为 `NaN/undefined`，参数永久失效 | 非有限参数被过滤，后续合法参数生效，`peak = 0.57` |
+
+这三条正是「界面显示在播但没有声音」的成因：Worklet 不报错、电平表仍按旧值或 0 显示，但总线状态已被非有限值污染。
+
+### 11.2 新增回归（Node，无浏览器）
+
+```powershell
+node tools/audio-recovery-tests.mjs
+```
+
+```text
+总计 19 项，通过 19 项，失败 0 项
+```
+
+脚本先注入 `globalThis.AudioWorkletProcessor` / `sampleRate` / `registerProcessor` 再 `import()` 真实的 Worklet 源文件（与浏览器、离线导出共用同一份 DSP），覆盖：坏时间戳不堵队列、NaN 力度不污染滤波器、NaN 参数被丢弃但后续合法参数生效、总线 NaN 触发 `resetMasterState()`、`recover()` 清空事件与声部、事件队列上限 8192、处理器抛异常时捕获并上报且继续发声、20 秒长会话输出稳定且声部数量受控。
+
+首跑有 1 项失败，原因是断言写死了 synth 预设并不存在的 `index` 参数（属 ep 预设），改为只断言 `cutoff`/`resonance` 有限且不含 `index` 后 19/19 通过——不是产品缺陷。
+
+### 11.3 全量回归
+
+```text
+transport-tests 15/15   retro-tests 9/9    notation-tests 9/9    scales-tests 18/18
+ambient-tests 35/35     ambient-integration-tests 4/4   audio-recovery-tests 19/19
+render-test：440 Hz 实测偏差 -0.0 cents；渲染长度正确、非静音、无非法数值、峰值未超过 1
+```
+
+`npm run build`（`tsc --noEmit && vite build`）通过：`index.html` 9.70 kB、CSS 27.17 kB、JS 288.16 kB（gzip 89.70 kB）、52 modules。
+
+### 11.4 EXE 确认为旧版 → 重新打包
+
+用户反馈「EXE 里找不到 ambient 子系统与五线谱」。解包旧 `app.asar` 对照：
+
+| 项 | 旧 asar（2026-11-01 01:03） | 新构建 `dist/` |
+| --- | --- | --- |
+| `index.html` | 5,101 字节 | 9,700 字节 |
+| JS | 216,923 字节 | 288,158 字节 |
+| 检索「回溯 / 五线谱 / 和弦建议 / 氛围」 | **0 命中** | 11 命中 |
+
+确认旧 EXE 是用旧 `dist/` 打的。执行 `node electron/package.mjs`（packager 仍因 EPERM 回退到本地运行时 + asar 手工拼装），产物 `release/SoundWeave-win32-x64/SoundWeave.exe`（238.2 MB）。再次解包新 asar：`index.html` 9,700 字节、`index-DRKtrkAM.js` 288,158 字节、`index-tPl2tgsR.css` 27,165 字节；「五线谱 / 回溯 / 和弦建议 / 氛围 / ambient」在 `index.html` 命中 6 处、在 JS 命中 41 处，且 JS 内含「稀疏雾霭」ambient 预设 → EXE 已带上新功能。
+
+### 11.5 EXE 自检与「偶发失败」的根因
+
+`npm run exe:smoke` 一度出现 4 项失败：`position=1.1`（未推进）、状态栏不是「已导出 WAV」而是「已生成「稀疏雾霭 Sparse Fog」…」、控制台有 `ResizeObserver loop` 报错、未生成 WAV。
+
+根因不是产品缺陷，而是**自检环境不封闭**：
+
+1. EXE 读的是用户真实 `userData` 里的自动保存 —— 该工程是 300 秒的 ambient 工程（3 轨 / 21 片段 / 58–70 BPM），离线渲染远超自检 8 秒采样窗口，所以状态一直停在「正在离线渲染」，退出时 WAV 还没落盘；
+2. 自检窗口是**可见**的，桌面上的真实鼠标操作会点到窗口（出现过「已生成「稀疏雾霭」」「移动片段」这类只有手动点击才会产生的状态文本）。
+
+修复（`electron/main.cjs`）：`--smoke-out` 启动时 `app.setPath('userData', <out 同目录>/userdata)` 使用独立配置目录，并且不调用 `win.show()`。修复后同一命令稳定 8/8：
+
+```text
+PASS  EXE 正常退出 — exit=0
+PASS  页面已加载（时间轴信息） — 3 轨 · 0 片段 · 100 BPM
+PASS  音频引擎运行 — 48 kHz · 运行中 · AudioWorklet
+PASS  播放推进 — position=1.3
+PASS  导出成功提示 — 已导出 WAV：4.00 秒 · 48000 Hz · 16-bit
+PASS  控制台无警告/错误
+PASS  生成了 WAV 文件 — 未命名工程.wav
+PASS  WAV 头合法（RIFF/WAVE · 48 kHz · 16-bit · 时长 > 0） — 2ch 48000Hz 16bit 4.00s
+```
+
+---
+
+## 12. 未执行 / 不能声称的验证
 
 - 未逐个人耳试听 64 个预设与 3 首示例工程；音质、乐器自然度、混音平衡**未验收**。v0.2.1 的新鼓组、钢琴非谐泛音、EP 双调制、吉他环路阻尼与总线混响尤其需要人耳判断。
 - 未对调音台竖向推子、PAN/REV 小滑杆、M/S、电平表做自动化拖动交互验证。

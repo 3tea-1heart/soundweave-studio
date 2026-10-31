@@ -12,6 +12,13 @@ function mtof(m) {
 function clamp(v, a, b) {
   return v < a ? a : v > b ? b : v;
 }
+/**
+ * 只接受有限数值。消息来自 UI、自动化、工程文件与 MIDI，任意一处出现 NaN/undefined
+ * 都会被 dsp 滤波器状态放大成永久静音，因此所有外部数值先过这道门。
+ */
+function finite(v, fallback) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
@@ -26,6 +33,10 @@ function tanhFast(x) {
 }
 class DCBlock {
   constructor() {
+    this.x1 = 0;
+    this.y1 = 0;
+  }
+  reset() {
     this.x1 = 0;
     this.y1 = 0;
   }
@@ -173,6 +184,11 @@ class Comb {
     this.idx = (this.idx + 1) % this.size;
     return out;
   }
+  reset() {
+    this.buf.fill(0);
+    this.idx = 0;
+    this.lp = 0;
+  }
 }
 
 class Allpass {
@@ -188,6 +204,10 @@ class Allpass {
     this.buf[this.idx] = x + bufout * this.g;
     this.idx = (this.idx + 1) % this.size;
     return out;
+  }
+  reset() {
+    this.buf.fill(0);
+    this.idx = 0;
   }
 }
 
@@ -206,6 +226,20 @@ class Reverb {
     this.preSize = Math.max(2, Math.floor(0.012 * sr));
     this.preBufL = new Float32Array(this.preSize);
     this.preBufR = new Float32Array(this.preSize);
+    this.preIdx = 0;
+    this.lpL = new OnePole();
+    this.lpR = new OnePole();
+    this.outL = 0;
+    this.outR = 0;
+  }
+  /** 清空全部延迟线：混响/延迟是长反馈回路，一旦吃到 NaN 会永久静音 */
+  reset() {
+    for (const c of this.combsL) c.reset();
+    for (const c of this.combsR) c.reset();
+    for (const a of this.apL) a.reset();
+    for (const a of this.apR) a.reset();
+    this.preBufL.fill(0);
+    this.preBufR.fill(0);
     this.preIdx = 0;
     this.lpL = new OnePole();
     this.lpR = new OnePole();
@@ -246,6 +280,15 @@ class DelayFx {
     this.size = Math.max(2, Math.floor((ms / 1000) * sr));
     this.bufL = new Float32Array(this.size);
     this.bufR = new Float32Array(this.size);
+    this.idx = 0;
+    this.lpL = 0;
+    this.lpR = 0;
+    this.outL = 0;
+    this.outR = 0;
+  }
+  reset() {
+    this.bufL.fill(0);
+    this.bufR.fill(0);
     this.idx = 0;
     this.lpL = 0;
     this.lpR = 0;
@@ -300,6 +343,24 @@ const TYPE_DEFAULTS = {
 
 function defaultParams(type) {
   return Object.assign({}, TYPE_DEFAULTS[type] || TYPE_DEFAULTS.synth);
+}
+
+/**
+ * 只保留有限数值的参数。缺失、undefined 或 NaN 一律丢弃，避免把这些值写进
+ * 平滑目标后污染滤波器系数（典型的“界面看着在播，但一直没声音”）。
+ */
+function sanitizeParams(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const out = {};
+  let any = false;
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      out[k] = v;
+      any = true;
+    }
+  }
+  return any ? out : null;
 }
 
 const DRUM_MAP = {
@@ -947,11 +1008,12 @@ class Track {
     return false;
   }
   setParams(partial) {
-    if (!partial) return;
-    Object.assign(this.target, partial);
+    const clean = sanitizeParams(partial);
+    if (!clean) return;
+    Object.assign(this.target, clean);
     // 没有发声声部时不存在需要淡出的过渡，直接生效；
     // 否则下一个音会用旧参数起音（预设试听的第一个音、切换音色后的第一个音都会失真）
-    if (!this.hasActiveVoices()) Object.assign(this.p, partial);
+    if (!this.hasActiveVoices()) Object.assign(this.p, clean);
   }
   smooth() {
     const sp = 0.1;
@@ -981,13 +1043,18 @@ class Track {
     this.panGain[1] = Math.sin(a) * Math.SQRT2;
   }
   noteOn(pitch, velocity, noteId, articulation, durFrames, seed, src, gen) {
+    // 音高/力度非法时不发声：NaN 会被乐器算式放大成整轨永久静音
+    if (!Number.isFinite(pitch)) return null;
+    const vel = clamp(finite(velocity, 0.7), 0, 1);
+    const frames = Number.isFinite(durFrames) && durFrames > 0 ? durFrames : 0;
     const type = this.type;
     let v;
-    if (type === 'ep') v = new EpVoice(this.sr, this, pitch, velocity, noteId, articulation, seed);
-    else if (type === 'guitar') v = new GuitarVoice(this.sr, this, pitch, velocity, noteId, articulation, seed);
-    else if (type === 'piano') v = new PianoVoice(this.sr, this, pitch, velocity, noteId, articulation, seed);
-    else if (type === 'drum') v = new DrumVoice(this.sr, this, pitch, velocity, noteId, articulation, seed);
-    else v = new SynthVoice(this.sr, this, pitch, velocity, noteId, articulation, seed);
+    if (type === 'ep') v = new EpVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
+    else if (type === 'guitar') v = new GuitarVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
+    else if (type === 'piano') v = new PianoVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
+    else if (type === 'drum') v = new DrumVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
+    else v = new SynthVoice(this.sr, this, pitch, vel, noteId, articulation, seed);
+    if (!v) return null;
     if (type === 'drum' && (v.piece === 'hat' || v.piece === 'openhat' || v.piece === 'crash')) {
       for (const other of this.voices) {
         if (!other.released && (other.piece === 'hat' || other.piece === 'openhat')) other.done = true;
@@ -996,7 +1063,7 @@ class Track {
     v.src = src || 'transport';
     v.gen = gen;
     if (this.bend !== 0) v.retune(this.bend);
-    v.setDuration(durFrames);
+    v.setDuration(frames);
     if (this.voices.length >= 24) this.voices.shift();
     this.voices.push(v);
     return v;
@@ -1054,13 +1121,17 @@ class Track {
     const dr = this.driveS;
     const vol = this.volume;
     const pressGain = 1 + this.pressure * 0.3;
-    const panL = this.panGain[0];
-    const panR = this.panGain[1];
+    const panL = Number.isFinite(this.panGain[0]) ? this.panGain[0] : 1;
+    const panR = Number.isFinite(this.panGain[1]) ? this.panGain[1] : 1;
     const chorus = this.chorusS;
+    const toneCoef = Number.isFinite(toneA) ? toneA : 1;
     let peak = 0;
     for (let i = 0; i < n; i++) {
       let mono = sl[i] * pressGain;
-      this.lpL += (mono - this.lpL) * toneA;
+      // 单个声部算出 NaN 时只丢掉这一拍，不能让滤波器状态被污染成整轨永久静音
+      if (!isFinite(mono)) mono = 0;
+      this.lpL += (mono - this.lpL) * toneCoef;
+      if (!isFinite(this.lpL)) this.lpL = 0;
       mono = this.lpL;
       if (dr > 0.02) mono = softsat(mono * (1 + dr * 4));
       let l = mono;
@@ -1080,6 +1151,8 @@ class Track {
         l += al[i];
         r += ar[i];
       }
+      if (!isFinite(l)) l = 0;
+      if (!isFinite(r)) r = 0;
       l *= panL * vol;
       r *= panR * vol;
       outL[i] += l;
@@ -1124,6 +1197,8 @@ class StudioProcessor {
     this.masterPeak = 0;
     this.dcL = new DCBlock();
     this.dcR = new DCBlock();
+    // 自动恢复次数：主线程据此提示“引擎已自愈”，而不是静默失声
+    this.recoveries = 0;
     this._pendingMessages = [];
     this.postMessage = options.post || (() => {});
   }
@@ -1148,8 +1223,17 @@ class StudioProcessor {
       this._pendingMessages.length = 0;
     }
     const blockEnd = this.frame + n;
-    while (this.events.length && this.events[0].frame <= blockEnd) {
-      this.applyEvent(this.events.shift());
+    // 事件队列安全出队：非有限帧（历史坏消息）直接丢弃，不能让它卡住队首导致全局失声
+    let guard = 0;
+    while (this.events.length && guard++ < 8192) {
+      const head = this.events[0];
+      if (!Number.isFinite(head.frame)) {
+        this.events.shift();
+        continue;
+      }
+      if (head.frame > blockEnd) break;
+      this.events.shift();
+      this.applyEvent(head);
     }
     this.volume += (this.volumeTarget - this.volume) * 0.08;
     let anySolo = false;
@@ -1187,6 +1271,13 @@ class StudioProcessor {
       outL[i] = L[i];
       if (outChannels.length > 1) outR[i] = R[i];
     }
+    // 长反馈链路（混响/延迟/隔直）一旦吃到 NaN 会永久输出静音，
+    // 每块检查一次状态，坏了就重建；界面上的播放状态不受影响，所以必须自动恢复
+    if (!isFinite(this.volume)
+      || !isFinite(this.dcL.y1) || !isFinite(this.dcR.y1)
+      || !isFinite(this.reverb.outL) || !isFinite(this.delay.outL)) {
+      this.resetMasterState();
+    }
     this.frame += n;
     this.levelTimer += n;
     if (this.levelTimer >= 8192) {
@@ -1195,6 +1286,41 @@ class StudioProcessor {
       this.postMessage({ type: 'levels', peak: Math.min(1, peak), tracks });
       this.masterPeak = 0;
     }
+  }
+  /** 重建总线上的长反馈状态（混响/延迟/隔直/音量平滑） */
+  resetMasterState() {
+    this.reverb.reset();
+    this.delay.reset();
+    this.dcL.reset();
+    this.dcR.reset();
+    this.volume = finite(this.volumeTarget, 1);
+    this.recoveries++;
+  }
+  /**
+   * 渲染异常后的自愈：清空事件与声部并重建全部延迟状态。
+   * 调度器每 140ms 会重新排程，因此清空事件不会让播放永久中断。
+   */
+  recover() {
+    this.events.length = 0;
+    this.clicks.length = 0;
+    for (const tr of this.tracks) {
+      tr.voices.length = 0;
+      tr.audioVoices.length = 0;
+      tr.lpL = 0;
+      tr.lpR = 0;
+      tr.bend = 0;
+      tr.bendTarget = 0;
+      tr.appliedBend = 0;
+      tr.pressure = 0;
+      tr.pressureTarget = 0;
+      tr.chorusIdx = 0;
+      tr.chorusPhase = 0;
+      tr.chorusBufL.fill(0);
+      tr.chorusBufR.fill(0);
+      tr.p = defaultParams(tr.type);
+      tr.target = Object.assign({}, tr.p);
+    }
+    this.resetMasterState();
   }
   renderClicks(outL, outR, n) {
     if (!this.clicks.length) return;
@@ -1212,19 +1338,26 @@ class StudioProcessor {
     }
     this.clicks = this.clicks.filter((c) => c.remaining > 0);
   }
+  /** 时间戳换算成帧；NaN/缺失时退回当前块，避免坏事件卡住整个事件队列 */
+  frameOf(when) {
+    const secs = finite(when, null);
+    if (secs === null) return this.frame;
+    return Math.round(secs * this.sr);
+  }
   handleMessage(m) {
     switch (m.type) {
       case 'note': {
-        const frame = m.when != null ? Math.round(m.when * this.sr) : this.frame;
+        if (!Number.isFinite(m.pitch)) break;
+        const frame = this.frameOf(m.when);
         this.events.push({
           frame,
           kind: 'note',
           track: m.track,
           pitch: m.pitch,
-          velocity: m.velocity,
+          velocity: finite(m.velocity, 0.7),
           id: m.id,
           art: m.art,
-          durFrames: m.dur ? Math.round(m.dur * this.sr) : 0,
+          durFrames: Math.max(0, Math.round(finite(m.dur, 0) * this.sr)),
           seed: ++this.voiceSeed,
           src: m.src || 'transport',
           gen: m.gen,
@@ -1233,7 +1366,7 @@ class StudioProcessor {
         break;
       }
       case 'noteOff': {
-        const frame = m.when != null ? Math.round(m.when * this.sr) : this.frame;
+        const frame = this.frameOf(m.when);
         this.events.push({ frame, kind: 'off', track: m.track, id: m.id, src: m.src || 'live', gen: m.gen });
         this.sortEvents();
         break;
@@ -1243,33 +1376,33 @@ class StudioProcessor {
         break;
       case 'bend': {
         const tr = this.tracks[m.track];
-        if (tr) tr.setBend(m.value);
+        if (tr) tr.setBend(finite(m.value, 0));
         break;
       }
       case 'pressure': {
         const tr = this.tracks[m.track];
-        if (tr) tr.setPressure(m.value);
+        if (tr) tr.setPressure(finite(m.value, 0));
         break;
       }
       case 'asset': {
         if (m.assetId && Array.isArray(m.channels) && m.channels.length) {
           this.assets.set(m.assetId, {
-            sampleRate: m.sampleRate || this.sr,
+            sampleRate: Math.max(1, finite(m.sampleRate, this.sr)),
             channels: m.channels,
           });
         }
         break;
       }
       case 'audio': {
-        const frame = m.when != null ? Math.round(m.when * this.sr) : this.frame;
+        const frame = this.frameOf(m.when);
         this.events.push({
           frame,
           kind: 'audio',
           track: m.track,
           assetId: m.assetId,
-          offsetSec: m.offsetSec || 0,
-          durFrames: m.dur ? Math.round(m.dur * this.sr) : 0,
-          gain: m.gain == null ? 1 : m.gain,
+          offsetSec: Math.max(0, finite(m.offsetSec, 0)),
+          durFrames: Math.max(0, Math.round(finite(m.dur, 0) * this.sr)),
+          gain: finite(m.gain, 1),
           id: m.id,
           src: m.src || 'transport',
           gen: m.gen,
@@ -1308,7 +1441,7 @@ class StudioProcessor {
       case 'track': {
         if (m.when !== undefined && m.when !== null) {
           this.events.push({
-            frame: Math.max(this.frame, Math.round(m.when * this.sr)),
+            frame: Math.max(this.frame, this.frameOf(m.when)),
             kind: 'track',
             m,
             src: m.src || 'automation',
@@ -1321,10 +1454,10 @@ class StudioProcessor {
         break;
       }
       case 'master':
-        if (m.volume !== undefined) this.volumeTarget = m.volume;
+        if (m.volume !== undefined) this.volumeTarget = clamp(finite(m.volume, this.volumeTarget), 0, 1.5);
         break;
       case 'metronome': {
-        const frame = m.when != null ? Math.round(m.when * this.sr) : this.frame;
+        const frame = this.frameOf(m.when);
         this.events.push({
           frame,
           kind: 'click',
@@ -1344,23 +1477,25 @@ class StudioProcessor {
     if (!tr) return;
     if (m.instrumentType && m.instrumentType !== tr.type) {
       tr.setType(m.instrumentType);
-      tr.p = Object.assign(defaultParams(m.instrumentType), m.params || {});
+      tr.p = Object.assign(defaultParams(m.instrumentType), sanitizeParams(m.params) || {});
       tr.target = Object.assign({}, tr.p);
     } else if (m.params) {
       tr.setParams(m.params);
     }
-    if (m.volume !== undefined) tr.volumeTarget = m.volume;
-    if (m.pan !== undefined) tr.panTarget = m.pan;
-    if (m.mute !== undefined) tr.mute = m.mute;
-    if (m.solo !== undefined) tr.solo = m.solo;
-    if (m.sendReverb !== undefined) tr.sendRevTarget = m.sendReverb;
-    if (m.sendDelay !== undefined) tr.sendDelayTarget = m.sendDelay;
-    if (m.tone !== undefined) tr.toneLP = m.tone;
-    if (m.drive !== undefined) tr.drive = m.drive;
-    if (m.chorus !== undefined) tr.chorus = m.chorus;
+    if (m.volume !== undefined) tr.volumeTarget = clamp(finite(m.volume, tr.volumeTarget), 0, 1);
+    if (m.pan !== undefined) tr.panTarget = clamp(finite(m.pan, tr.panTarget), -1, 1);
+    if (m.mute !== undefined) tr.mute = !!m.mute;
+    if (m.solo !== undefined) tr.solo = !!m.solo;
+    if (m.sendReverb !== undefined) tr.sendRevTarget = clamp(finite(m.sendReverb, tr.sendRevTarget), 0, 1);
+    if (m.sendDelay !== undefined) tr.sendDelayTarget = clamp(finite(m.sendDelay, tr.sendDelayTarget), 0, 1);
+    if (m.tone !== undefined) tr.toneLP = clamp(finite(m.tone, tr.toneLP), 0.1, 1);
+    if (m.drive !== undefined) tr.drive = clamp(finite(m.drive, tr.drive), 0, 1);
+    if (m.chorus !== undefined) tr.chorus = clamp(finite(m.chorus, tr.chorus), 0, 1);
   }
   sortEvents() {
     if (this.events.length > 1) this.events.sort((a, b) => a.frame - b.frame);
+    // 极端情况下（长时间不同步）队列不应无限增长，只保留最近的排程
+    if (this.events.length > 8192) this.events.splice(0, this.events.length - 8192);
   }
   applyEvent(ev) {
     if (ev.kind === 'note') {
@@ -1393,12 +1528,25 @@ if (typeof registerProcessor === 'function') {
         sampleRate: sampleRate,
         post: (msg) => this.port.postMessage(msg),
       });
+      this.lastErrorFrame = -Infinity;
       this.port.onmessage = (e) => this.sp.receive(e.data);
     }
     process(inputs, outputs) {
       const out = outputs[0];
       if (!out || out.length === 0) return true;
-      this.sp.processBlock(out);
+      try {
+        this.sp.processBlock(out);
+      } catch (err) {
+        // AudioWorkletProcessor 抛异常会被 Chromium 直接停用，节点从此静默：
+        // 界面仍显示正在播放却没有声音。这里自愈并上报，保证节点继续工作。
+        for (let c = 0; c < out.length; c++) out[c].fill(0);
+        this.sp.recover();
+        const message = err && err.message ? err.message : String(err);
+        if (this.sp.frame - this.lastErrorFrame > sampleRate) {
+          this.lastErrorFrame = this.sp.frame;
+          this.port.postMessage({ type: 'error', message });
+        }
+      }
       return true;
     }
   }
