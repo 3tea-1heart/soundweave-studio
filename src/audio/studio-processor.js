@@ -1120,7 +1120,22 @@ class Track {
       }
     }
     // 采样库覆盖不到这个音高时退回合成音源，避免整轨静音
-    if (!best || (!drums && bestDist > 15)) return null;
+    if (!best) {
+      // 该音高只有单层采样时（部分低音/高音区），按音高最近 + 力度最接近补选，避免退化成合成音色
+      let bestScore = Infinity;
+      for (const s of bank.samples) {
+        const dist = Math.abs(s.pitch - pitch);
+        if (drums && dist > 1) continue;
+        if (!drums && dist > 15) continue;
+        const velDist = velocity < s.velMin ? s.velMin - velocity : velocity > s.velMax ? velocity - s.velMax : 0;
+        const score = dist * 4 + velDist;
+        if (score < bestScore) {
+          bestScore = score;
+          best = s;
+        }
+      }
+    }
+    if (!best || (!drums && Math.abs(best.pitch - pitch) > 15)) return null;
     return best;
   }
   noteOn(pitch, velocity, noteId, articulation, durFrames, seed, src, gen) {

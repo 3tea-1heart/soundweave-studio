@@ -28,7 +28,7 @@ node tools/retro-tests.mjs        # 回溯录制缓冲与写回（9 项）
 node tools/notation-tests.mjs     # 五线谱记谱换算（9 项）
 node tools/scales-tests.mjs       # 音阶、和弦拼写与和弦建议（18 项）
 node tools/audio-recovery-tests.mjs  # 音频长会话自愈：坏时间戳/NaN 污染/异常恢复（19 项）
-node tools/sample-tests.mjs       # 采样音源：加载/变调/力度层/循环/回退/离线（27 项）
+node tools/sample-tests.mjs       # 采样音源：加载/变调/力度层/循环/回退/离线（28 项）
 # 采样库由 tools/sample-build.py 生成（素材来源与授权见 docs/samples.md）
 ```
 
@@ -235,7 +235,7 @@ node tools/sample-tests.mjs       # 采样音源：加载/变调/力度层/循�
 | 音频长会话自愈（v0.7.1） | `node tools/audio-recovery-tests.mjs` | **19/19 通过**；`when=NaN` 事件不堵队列、NaN 力度不污染 `lpL`/`dcL`/`delay`、NaN 参数被丢弃且后续合法参数仍生效、总线 NaN 自动重建、`recover()` 清空事件与声部、事件队列上限 8192、Worklet 抛异常后仍继续发声、20 秒长会话输出稳定。修复前三类缺陷都能让输出 `peak=0` 永久静默 |
 | EXE 重打包与新功能入包（v0.7.1） | `node electron/package.mjs` + 解包 asar 检索 | 新 asar 内 `index.html` 9,700 字节、`index-DRKtrkAM.js` 288,158 字节；「五线谱 / 回溯 / 和弦建议 / 氛围 / ambient」在 `index.html` 命中 6 处、在 JS 命中 41 处，且 JS 内含「稀疏雾霭」预设，证明 EXE 已带上 ambient 子系统与五线谱等功能（旧 asar 同关键词 0 命中） |
 | EXE 自检复现（v0.7.1） | `npm run exe:smoke` | **8/8 通过**；`3 轨 · 0 片段 · 100 BPM`、`position=1.3`、`已导出 WAV：4.00 秒 · 48000 Hz · 16-bit`、控制台 0 条日志、`未命名工程.wav`（768,044 字节）。自检改为独立 `userData` + 隐藏窗口后从偶发失败变为确定性通过（原因见 §5 第 18 条） |
-| 采样音源（v0.7.2） | `node tools/sample-tests.mjs` | **27/27 通过**；WAV 清单/解析、63+59+12+21 个采样加载、根音波形与原始采样相关系数 **0.999**、变调方向、强弱力度分层、钢琴循环 3 秒后仍有声、贝斯无循环自然收尾、鼓组采样与踩镲互斥标记、缺库/超音域自动回退合成、弯音无 NaN、离线计划（`buildSessionPlan` 同一消息序列）出声且走 `SampleVoice` |
+| 采样音源（v0.7.2） | `node tools/sample-tests.mjs` | **28/28 通过**；WAV 清单/解析、63+59+12+21 个采样加载、根音波形与原始采样相关系数 **0.999**、变调方向、强弱力度分层、单层音高（如 B0）在弱力度仍选到采样、钢琴循环 3 秒后仍有声、贝斯无循环自然收尾、鼓组采样与踩镲互斥标记、缺库/超音域自动回退合成、弯音无 NaN、离线计划（`buildSessionPlan` 同一消息序列）出声且走 `SampleVoice` |
 | 采样音源浏览器实测（v0.7.2） | 开发服务器 127.0.0.1:5173 | 默认工程显示「钢琴 / 贝斯 / 鼓机」3 轨；`samples/piano-kw/*.wav` 请求 200；引擎运行中；控制台无报错；插入编曲块后导出「已导出 WAV：11.20 秒 · 48000 Hz · 16-bit」 |
 | EXE 含采样音源（v0.7.2） | `npm run exe` + `npm run exe:smoke` | **9/9 通过**；`app.asar` 由 0.25 MB 增至 **56.3 MB**（含 `dist/samples` 55.9 MB）；自检在 EXE 内读取 `samples/piano-kw/A0vL.wav` 成功（**726,736 字节**），证明采样随包交付 |
 | 音频片段离线渲染（v0.5.0） | `npm run render-test` | `p4-wav-音频片段` 2.40 s、峰值 0.407、RMS 0.1789、无 NaN/超 1；播放段 rms 0.293，片段起点前与终点后均为 0.000；44.1 kHz 素材重采样后 440 Hz 实测偏差 -0.0 cents |

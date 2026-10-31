@@ -87,7 +87,7 @@ node tools/retro-tests.mjs       # 回溯录制缓冲与写回（9 项）
 node tools/notation-tests.mjs    # 五线谱记谱换算（9 项）
 node tools/scales-tests.mjs      # 音阶、和弦拼写与和弦建议（18 项）
 node tools/audio-recovery-tests.mjs # 音频长会话自愈（19 项）
-node tools/sample-tests.mjs      # 采样音源：加载/变调/力度层/循环/回退/离线（27 项）
+node tools/sample-tests.mjs      # 采样音源：加载/变调/力度层/循环/回退/离线（28 项）
 ```
 
 ---

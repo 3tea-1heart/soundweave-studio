@@ -152,6 +152,18 @@ function play(sp, pitch, velocity = 0.8, dur = 0.5, track = 3) {
   })(), '力度分层');
 }
 
+// ---------------------------------------------------------------- 单层音高与弱力度
+{
+  const pianoSamples = loaded['piano-kw'].samples;
+  const softOnlyHigh = pianoSamples.filter((s) => s.velMin > 0.3).map((s) => s.pitch);
+  const singleLayerPitch = softOnlyHigh.find((p) => pianoSamples.filter((s) => s.pitch === p).length === 1);
+  const sp = makeProcessor('piano-kw', 'piano');
+  sendBank(sp, loaded['piano-kw']);
+  render(sp, 1); // 消息在下一个音频块才应用
+  const picked = singleLayerPitch === undefined ? null : sp.tracks[3].pickSample(singleLayerPitch, 0.2);
+  check('只有强力度层的音高在弱力度仍选到采样（不退回合成）', !!picked, `pitch=${singleLayerPitch}`);
+}
+
 // ---------------------------------------------------------------- 变调方向
 {
   const up = makeProcessor('piano-kw', 'piano');
